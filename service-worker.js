@@ -1,11 +1,11 @@
 const CACHE_NAME = "chit-manager-cache";
 const urlsToCache = [
-  "/",
-  "/index.html",
-  "/app.js",
-  "/style.css",
-  "/icons/chitManager.png",
-  "/icons/chitManager1.png",
+  "/ChitManager/",
+  "/ChitManager/index.html",
+  "/ChitManager/app.js?v=1.1",
+  "/ChitManager/style.css",
+  "/ChitManager/icons/chitManager.png",
+  "/ChitManager/icons/chitManager1.png",
 ];
 
 self.addEventListener("install", (event) => {
