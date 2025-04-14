@@ -2,7 +2,7 @@
   "name": "Chit Manager",
   "short_name": "Chit Manager",
   "description": "A simple Chit Management system",
-  "start_url": "/",
+  "start_url": "/ChitManager/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#007bff",
