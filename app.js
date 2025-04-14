@@ -131,8 +131,8 @@ function saveCustomer() {
   const contact = document.getElementById('customerContact').value.trim();
   const editIndex = parseInt(document.getElementById('editCustomerIndex').value);
 
-  if (!name || !contact) {
-    alert("Please enter both Name and Contact.");
+  if (!name) {
+    alert("Enter Name");
     return;
   }
 
