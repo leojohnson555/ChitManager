@@ -4,8 +4,8 @@ const urlsToCache = [
   "/ChitManager/index.html",
   "/ChitManager/app.js?v=1.1",
   "/ChitManager/style.css",
-  "/ChitManager/icons/chitManager.png",
-  "/ChitManager/icons/chitManager1.png",
+  "/ChitManager/icons/chitManager512x512.png",
+  "/ChitManager/icons/chitManager192x192.png",
 ];
 
 self.addEventListener("install", (event) => {
