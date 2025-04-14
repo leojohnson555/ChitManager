@@ -2,7 +2,7 @@ const CACHE_NAME = "chit-manager-cache";
 const urlsToCache = [
   "/ChitManager/",
   "/ChitManager/index.html",
-  "/ChitManager/app.js?v=1.1",
+  "/ChitManager/app.js",
   "/ChitManager/style.css",
   "/ChitManager/icons/chitManager512x512.png",
   "/ChitManager/icons/chitManager192x192.png",
