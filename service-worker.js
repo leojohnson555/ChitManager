@@ -14,6 +14,7 @@ self.addEventListener("install", (event) => {
       return cache.addAll(urlsToCache);
     })
   );
+  self.skipWaiting(); // activate immediately
 });
 
 self.addEventListener("fetch", (event) => {
