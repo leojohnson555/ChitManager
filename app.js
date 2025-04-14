@@ -613,13 +613,13 @@ function computePaymentSummary(selectedLends, paymentAmount = 0, paymentDate = g
     });
 
     const totalPayable = totalPrincipal + totalInterest - paymentAmount;
-
     return {
       date: paymentDate,
       principal: totalPrincipal,
       interest: totalInterest,
       payment: paymentAmount,
       total: totalPayable,
+	  currentDue:totalPayable,
       weeks: lendWeeks
     };
   });
@@ -636,8 +636,8 @@ async function calculatePaymentSummary() {
 	  
   const allLends = await getLendings();
   const selectedLends = allLends.filter(l => selectedIds.includes(l.id));
-  const paymentAmount = currentPaymentCalc?.payment || 0;
-  
+  //const paymentAmount = currentPaymentCalc?.payment || 0;
+  const paymentAmount=0;
   // Since all selected lends have the same customerId and subName, just get the subName from the first lend.
   const subName = selectedLends.length > 0 ? selectedLends[0].subName : null; // Return null if no lends are selected
   const custId = selectedLends.length > 0 ? selectedLends[0].customerId : null; // Return null if no lends are selected
@@ -655,7 +655,7 @@ function addPayment() {
   if (isNaN(amount) || amount <= 0) amount = 0;
 
   currentPaymentCalc.payment = amount;
-  currentPaymentCalc.total = currentPaymentCalc.total - currentPaymentCalc.payment;
+  currentPaymentCalc.currentDue=currentPaymentCalc.total-currentPaymentCalc.payment;
 
   updatePaymentSummaryUI(currentPaymentCalc);
 }
@@ -666,7 +666,7 @@ function updatePaymentSummaryUI(summary) {
     <strong>Interest:</strong> ₹${summary.interest}<br>
     <strong>Outstanding:</strong> ₹${summary.principal}<br>
     <strong>Payment:</strong> ₹${summary.payment}<br>
-    <strong>Total Payable:</strong> ₹${summary.total}
+    <strong>Total Payable:</strong> ₹${summary.currentDue}
   `;
 }
 
@@ -679,20 +679,19 @@ async function submitTransaction() {
 
   // Save payment
   const payStore = getTransaction('transactions', 'readwrite');
-  const currentDue=currentPaymentCalc.total-currentPaymentCalc.payment;
   const newPayment = {
     id: generateId(),
 	customerId:currentPaymentCalc.customerId,
 	subName:currentPaymentCalc.subName,
     date: currentPaymentCalc.date,
-	state: currentDue === 0 ? "closed" : "renew",
+	state: currentPaymentCalc.currentDue === 0 ? "closed" : "renew",
 	weeks:currentPaymentCalc.weeks,
     lendIds: currentPaymentCalc.lendIds,
 	amount:currentPaymentCalc.principal,
     interest: currentPaymentCalc.interest,
 	total:currentPaymentCalc.total,
     paidAmount: currentPaymentCalc.payment,
-	dueAmount:currentDue
+	dueAmount:currentPaymentCalc.currentDue
   };
   payStore.put(newPayment);
 
@@ -711,9 +710,9 @@ async function submitTransaction() {
     date: currentPaymentCalc.date,
 	customerId:currentPaymentCalc.customerId,
     subName:currentPaymentCalc.subName,
-    amount: currentPaymentCalc.total,
-	dueAmount:currentDue,
-    active: currentDue === 0 ? false : true
+    amount: currentPaymentCalc.currentDue,
+	dueAmount:currentPaymentCalc.currentDue,
+    active: currentPaymentCalc.currentDue === 0 ? false : true
   });
 
   const lendStore = getTransaction('lendings', 'readwrite');
