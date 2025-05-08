@@ -28,28 +28,29 @@ function showSection(sectionId, event) {
 }
 
 const PASSWORD = "PGSChitManager"; // password
-    const KEY = "chit_access_granted";
+const KEY = "chit_access_granted";
 
-    function checkPassword() {
-      const entered = document.getElementById("appPassword").value;
-      if (entered === PASSWORD) {
-        localStorage.setItem(KEY, "1");
-        document.getElementById("loginBox").classList.add("hidden");
-        document.getElementById("appContainer").classList.remove("hidden");
-      } else {
-        document.getElementById("wrongPass").classList.remove("d-none");
-      }
-    }
+function validatePassword() {
+  const entered = document.getElementById("appPassword").value;
+  if (entered === PASSWORD) {
+    localStorage.setItem(KEY, "1");
+    document.getElementById("loginBox").classList.add("hidden");
+    document.getElementById("appContainer").classList.remove("hidden");
+  } else {
+    document.getElementById("wrongPass").classList.remove("d-none");
+  }
+}
 
-    window.onload = function () {
-      if (localStorage.getItem(KEY) === "1") {
-        document.getElementById("loginBox").classList.add("hidden");
-        document.getElementById("appContainer").classList.remove("hidden");
-      }
-    };
+window.onload = function () {
+  if (localStorage.getItem(KEY) === "1") {
+    document.getElementById("loginBox").classList.add("hidden");
+    document.getElementById("appContainer").classList.remove("hidden");
+  }
+};
 	
 
 //Register service-worker
+
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     navigator.serviceWorker
@@ -94,7 +95,7 @@ function initDB() {
     request.onsuccess = function (e) {
         db = e.target.result;
         loadCustomers();
-        loadTransactions();
+        loadTransactions("Transaction");
         loadSettings();
 		loadCustomerDropdowns();
 		loadPaymentCustomers();
@@ -129,6 +130,7 @@ function formatDate(dateStr) {
 function saveCustomer() {
   const name = document.getElementById('customerName').value.trim();
   const contact = document.getElementById('customerContact').value.trim();
+  const InstallmentAmount = parseFloat(document.getElementById('InstallmentAmount').value);
   const editIndex = parseInt(document.getElementById('editCustomerIndex').value);
 
   if (!name) {
@@ -136,7 +138,7 @@ function saveCustomer() {
     return;
   }
 
-  const customer = { name, contact };
+  const customer = { name, contact, InstallmentAmount };
   const transaction = db.transaction(['customers'], 'readwrite');
   const store = transaction.objectStore('customers');
 
@@ -151,6 +153,7 @@ function saveCustomer() {
   transaction.oncomplete = () => {
     document.getElementById('customerName').value = '';
     document.getElementById('customerContact').value = '';
+    document.getElementById('InstallmentAmount').value = '';
     loadCustomers();
     loadCustomerDropdowns();
   };
@@ -165,12 +168,13 @@ function loadCustomers() {
   store.openCursor().onsuccess = function (e) {
     const cursor = e.target.result;
     if (cursor) {
-      const { id, name, contact } = cursor.value;
+      const { id, name, contact, InstallmentAmount } = cursor.value;
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td>${id}</td>
         <td>${name}</td>
         <td>${contact}</td>
+        <td>${InstallmentAmount}</td>
         <td>
           <button class="btn btn-sm btn-outline-primary" onclick="editCustomer(${id})">✏️</button>
           <button class="btn btn-sm btn-outline-danger" onclick="deleteCustomer(${id})">🗑️</button>
@@ -190,6 +194,7 @@ function editCustomer(id) {
     const customer = request.result;
     document.getElementById('customerName').value = customer.name;
     document.getElementById('customerContact').value = customer.contact;
+    document.getElementById('InstallmentAmount').value = customer.InstallmentAmount;
     document.getElementById('editCustomerIndex').value = customer.id;
   };
 }
@@ -234,7 +239,9 @@ function saveSettings() {
   }
   const weeklyInterest = parseFloat(document.getElementById('weeklyInterest').value);
   const interestCycle = parseInt(document.getElementById('interestCycle').value);
-
+  const ChitDuration = parseInt(document.getElementById('ChitDuration').value);
+  const ChitUnit = parseFloat(document.getElementById('ChitUnit').value);
+  
   if (isNaN(weeklyInterest) || isNaN(interestCycle)) {
     alert('Please enter valid values for interest settings.');
     return;
@@ -243,7 +250,9 @@ function saveSettings() {
   const settings = {
     id: 'settings', // Static id for single record
     weeklyInterest,
-    interestCycle
+    interestCycle,
+	ChitDuration,
+	ChitUnit
   };
 
   const transaction = db.transaction(['settings'], 'readwrite');
@@ -270,6 +279,8 @@ function loadSettings() {
     if (settings) {
       document.getElementById("weeklyInterest").value = settings.weeklyInterest || "";
       document.getElementById("interestCycle").value = settings.interestCycle || "";
+      document.getElementById("ChitDuration").value = settings.ChitDuration || "";
+      document.getElementById("ChitUnit").value = settings.ChitUnit || "";
     }
   };
 
@@ -296,35 +307,78 @@ async function addLent() {
   const customerId = parseInt(document.getElementById('lendCustomer').value);
   const subName = document.getElementById('lendSubName').value.trim();
   const amount = parseFloat(document.getElementById('lendAmount').value);
-  const editIndex = document.getElementById('editLendIndex').value;
+  let editIndex = document.getElementById('editLendIndex').value;
 
   if (!date || isNaN(customerId) || isNaN(amount) || amount <= 0) {
     alert("Please fill all fields correctly.");
     return;
   }
+  
+  const allLends = await getLendings();
+  const existing = allLends.find(
+    l => l.date === date && l.customerId === customerId 
+	&& l.subName === subName && l.active===true
+  );
+  
+ //Editing the Lend
+if (editIndex !== "-1") {
+    // Mark as editing existing lend
+    editIndex = existing.id;
+    existing.amount = amount;
+    existing.dueAmount = amount;
+
+    try {
+      await saveLendingWithTransaction(existing, false);
+      resetLendForm();
+      loadLendings();
+    } catch (err) {
+      alert("Failed to update existing lending.");
+      console.error(err);
+    }
+    return;
+  }
+  
+  //Adding new amount to existing Lend
+  if (existing) {
+    // Mark as editing existing lend
+    editIndex = existing.id;
+    existing.amount += amount;
+    existing.dueAmount += amount;
+
+    try {
+      await saveLendingWithTransaction(existing, true);
+      resetLendForm();
+      loadLendings();
+    } catch (err) {
+      alert("Failed to update existing lending.");
+      console.error(err);
+    }
+    return;
+  }
 
   const entry = {
-    id: editIndex === "-1" ? generateId() : editIndex,
+    id: generateId(),
     date,
     customerId,
     subName,
     amount,
     dueAmount: amount,
-    active: true
+    active: true,
+    successor: null,
+    predecessor: [],
   };
 
   try {
-    await saveLendingAndTransaction(entry, editIndex !== "-1");
+    await saveLendingWithTransaction(entry, false);
     resetLendForm();
     loadLendings();
-    //alert(editIndex === "-1" ? "Lending added" : "Lending updated");
   } catch (err) {
-    alert("Failed to save lending and transaction.");
+    alert("Failed to save new lending.");
     console.error(err);
   }
 }
 
-async function saveLendingAndTransaction(entry, isEdit = false) {
+async function saveLendingWithTransaction(entry, isPaymentAdded = false) {
   return new Promise((resolve, reject) => {
     const tx = db.transaction(['lendings', 'transactions'], 'readwrite');
     const lendStore = tx.objectStore('lendings');
@@ -333,21 +387,31 @@ async function saveLendingAndTransaction(entry, isEdit = false) {
     try {
       // Save/Update lending
       lendStore.put(entry);
-
+	  let amount;
+      if(isPaymentAdded){
+	  amount = parseFloat(document.getElementById('lendAmount').value);}
+	  else{
+		  amount=entry.amount;}
+		  
+	  if(isPaymentAdded){
+		id=generateId();}
+		else{
+		id=entry.id;}
+		  
       // Save/Update corresponding transaction
       const transEntry = {
-        id: entry.id, // Same as lend ID for easy traceability
+        id: id, // Same as lend ID for easy traceability
         customerId: entry.customerId,
         subName: entry.subName,
         date: entry.date,
 		state:"new",
 		weeks: [],
         lendIds: [entry.id],
-        amount: entry.amount,
+        amount: amount,
         interest: 0,
-		total:entry.amount,
+		total:amount,
         paidAmount: 0,
-        dueAmount: entry.amount,
+        dueAmount: amount,
       };
 	
       transStore.put(transEntry);
@@ -399,7 +463,7 @@ function loadLendings() {
           <td>${formatDate(l.date)}</td>
           <td>${customer.name}</td>
           <td>${l.subName}</td>
-          <td>${l.amount.toFixed(2)}</td>
+          <td>${l.dueAmount.toFixed(2)}</td>
           <td>
             ${l.active ? `<button class="btn btn-sm btn-outline-primary" onclick="editLent('${l.id}')">✏️</button>` : ''}
             <button class="btn btn-sm btn-outline-danger" onclick="deleteLent('${l.id}')">🗑️</button>
@@ -415,7 +479,7 @@ function loadLendings() {
           <td>${formatDate(l.date)}</td>
           <td>Error</td>
           <td>${l.subName || '-'}</td>
-          <td>${l.amount.toFixed(2)}</td>
+          <td>${l.dueAmount.toFixed(2)}</td>
           <td>
             ${l.active ? `<button class="btn btn-sm btn-outline-primary" onclick="editLent('${l.id}')">✏️</button>` : ''}
             <button class="btn btn-sm btn-outline-danger" onclick="deleteLent('${l.id}')">🗑️</button>
@@ -436,7 +500,7 @@ function editLent(id) {
     document.getElementById('lendDate').value = lending.date;
     document.getElementById('lendCustomer').value = lending.customerId;
     document.getElementById('lendSubName').value = lending.subName;
-    document.getElementById('lendAmount').value = lending.amount;
+    document.getElementById('lendAmount').value = lending.dueAmount;
     document.getElementById('editLendIndex').value = lending.id;
   };
 }
@@ -556,14 +620,15 @@ async function loadCustomerActiveLends() {
 
   const { customerId, subName } = JSON.parse(selectedOption); // Retrieve customerId and subName from the selected option
 
-  const lends = (await getLendings()).filter(l => l.customerId === customerId && l.subName === subName && l.active);
+  const lends = (await getLendings()).filter(l => l.customerId === customerId 
+				&& l.subName === subName && l.active);
 
   const container = document.getElementById('activeLendsList');
   container.innerHTML = '';  
 
   lends.forEach((lend, index) => {
   const weeks = getWeeksBetween(lend.date, getPaymentDate());
-  const labelText = `${lend.date} - ₹${lend.amount} (${weeks} weeks)`;
+  const labelText = `${lend.date} - ₹${lend.dueAmount} (${weeks} weeks)`;
 
   const checkbox = document.createElement('input');
   const checkboxId = `lendCheckbox_${lend.id}_${index}`; // unique ID for each checkbox
@@ -606,9 +671,9 @@ function computePaymentSummary(selectedLends, paymentAmount = 0, paymentDate = g
 
     selectedLends.forEach(l => {
       const weeks = getWeeksBetween(l.date, paymentDate);
-      const interest = Math.round((l.amount * interestRate * weeks) / 100);
+      const interest = Math.round((l.dueAmount * interestRate * weeks) / 100);
       totalInterest += interest;
-      totalPrincipal += l.amount;
+      totalPrincipal += l.dueAmount;
       lendWeeks.push({ lendId: l.id, weeks });
     });
 
@@ -676,11 +741,11 @@ async function submitTransaction() {
     alert("Missing calculation.");
     return;
   }
-
+	const newId=generateId();
   // Save payment
   const payStore = getTransaction('transactions', 'readwrite');
   const newPayment = {
-    id: generateId(),
+    id: newId,
 	customerId:currentPaymentCalc.customerId,
 	subName:currentPaymentCalc.subName,
     date: currentPaymentCalc.date,
@@ -694,25 +759,34 @@ async function submitTransaction() {
 	dueAmount:currentPaymentCalc.currentDue
   };
   payStore.put(newPayment);
-
+  
+  // Ensure predecessor is always saved as an array, even with one item
+	const predecessorArray = Array.isArray(currentPaymentCalc.lendIds)
+	  ? currentPaymentCalc.lendIds
+	  : [currentPaymentCalc.lendIds];
+	  
   // Update lendings
   const allLends = await getLendings();
   const updatedLends = allLends.map(l => {
     if (currentPaymentCalc.lendIds.includes(l.id)) {
       l.active = false;
+	  l.successor=newId;
     }
     return l;
   });
 
   const name = document.getElementById('paymentCustomerSelect').value;
+  
   updatedLends.push({
-    id: generateId(),
+    id: newId,
     date: currentPaymentCalc.date,
 	customerId:currentPaymentCalc.customerId,
     subName:currentPaymentCalc.subName,
-    amount: currentPaymentCalc.currentDue,
+    amount: currentPaymentCalc.principal,
 	dueAmount:currentPaymentCalc.currentDue,
-    active: currentPaymentCalc.currentDue === 0 ? false : true
+    active: currentPaymentCalc.currentDue === 0 ? false : true,
+	successor:null,
+	predecessor:predecessorArray,
   });
 
   const lendStore = getTransaction('lendings', 'readwrite');
@@ -721,7 +795,7 @@ async function submitTransaction() {
   alert("Transaction added");
   document.getElementById('paymentAmount').value = '';
   await loadCustomerActiveLends();
-  await loadTransactions();
+  await loadTransactions("Transaction");
   loadLendings();
   clearTransactionScreen();
 }
@@ -736,17 +810,38 @@ function clearTransactionScreen() {
   document.getElementById('paymentAmount').value = '';
 }
 
-async function loadTransactions() {
-  const tbody = document.getElementById('paymentTableBody');
+async function loadTransactions(screen) {
+  const tbody = screen === "Transaction"
+    ? document.getElementById('paymentTableBody')
+    : document.getElementById('renewedTableBody');
   tbody.innerHTML = '';
+
   const transactions = await getTransactions();
+  
+  const selectedDate = document.getElementById('renewalDate').value;
+  
+  let renewTransactions;
+  // Filter only "renew" transactions
+  if(screen === "Transaction"){
+	renewTransactions = transactions.filter(p => p.state === "renew")
+	.sort((a, b) => new Date(b.date) - new Date(a.date));
+  } else {
+		renewTransactions = transactions.filter(p => p.date == selectedDate);
+		}
 
-// Filter out transactions where the state is "renew"
-  const renewTransactions = transactions.filter(p => p.state === "renew");
+  // Enrich each transaction with customer name
+  const enrichedTransactions = await Promise.all(
+    renewTransactions.map(async p => {
+      const customerName = await getLendCustomerName(p.customerId, p.subName);
+      return { ...p, customerName };
+    })
+  );
 
-  renewTransactions.forEach(p => {
+  // Now render the enriched rows
+  enrichedTransactions.forEach(p => {
     const tr = document.createElement('tr');
     tr.innerHTML = `
+      <td>${p.customerName}</td>
       <td>${formatDate(p.date)}</td>
       <td>${(p.lendIds || []).length} lend(s)</td>
       <td>₹${p.interest}</td>
@@ -759,6 +854,7 @@ async function loadTransactions() {
     tbody.appendChild(tr);
   });
 }
+
 
 async function deletePayment(id) {
   if (!confirm("Delete this transaction?")) return;
@@ -804,12 +900,137 @@ async function deletePayment(id) {
     // Step 4: Delete the transaction record
     const delTxStore = getTransaction('transactions', 'readwrite');
     delTxStore.delete(id).onsuccess = async () => {
-      await loadTransactions();
+      await loadTransactions("Transaction");
       await loadCustomerActiveLends();
       loadLendings();
       alert("transaction deleted and changes reverted.");
     };
   };
+}
+
+//========== MATURED - RENEWAL ==========
+
+async function loadMaturedRenewals(reset = true) {
+  const container = document.getElementById('maturedRenewalList');
+  if (reset) {
+  container.innerHTML = '';}
+
+  const selectedDate = document.getElementById('renewalDate').value;
+  if (!selectedDate) return;
+
+  const [lendings, settings] = await Promise.all([getLendings(), getSettings()]);
+
+  const matured = lendings.filter(l => {
+    if (!l.active) return false;
+    const weeks = getWeeksBetween(l.date, selectedDate);
+    return weeks >= parseInt(settings.interestCycle);
+  });
+
+  if (reset) {
+    for (const l of matured) {
+      const name = await getLendCustomerName(l.customerId, l.subName);
+      const lendweeks = getWeeksBetween(l.date, selectedDate);
+      const div = document.createElement('div');
+      div.textContent = `${name} - ₹${l.dueAmount} on ${formatDate(l.date)} (weeks-${lendweeks})`;
+      container.appendChild(div);
+    }
+
+    if (matured.length > 0) {
+      const btn = document.createElement('button');
+      btn.textContent = 'Renew All';
+      btn.classList.add('btn', 'btn-success', 'mt-2');
+      btn.id = 'renewAllBtn';
+      btn.onclick = () => renewAllMaturedLends(matured, selectedDate);
+      container.appendChild(btn);
+    } else {
+      container.textContent = 'No matured lendings on selected date.';
+    }
+  }
+}
+
+function renewAllMaturedLends(lendings, selectedDate) {
+  if (!lendings || lendings.length === 0) {
+    alert("⚠️ Load matured lends again.");
+    return;
+  }
+
+  document.getElementById("loader").style.display = "block"; // Show loader
+
+  getSettings().then(settings => {
+    const interestRate = parseFloat(settings.weeklyInterest);
+    let completedCount = 0;
+
+    lendings.forEach(oldLend => {
+      const weeksPassed = getWeeksBetween(oldLend.date, selectedDate);
+      const newDate = new Date(oldLend.date);
+      newDate.setDate(newDate.getDate() + weeksPassed * 7);
+      const newDateStr = newDate.toISOString().split('T')[0];
+
+      const interest = Math.round((oldLend.dueAmount * interestRate / 100) * weeksPassed);
+      const newAmount = oldLend.dueAmount + interest;
+	  
+	  const newId=generateId();
+      const newLend = {
+        id: newId,
+        date: newDateStr,
+        customerId: oldLend.customerId,
+        subName: oldLend.subName,
+        amount: oldLend.amount,
+        dueAmount: newAmount,
+        active: true,
+		successor:null,
+		predecessor: [oldLend.id],
+      };
+	  
+
+      const lendWeeks = [{ lendId: oldLend.id, weeks: weeksPassed }];
+
+      const transaction = {
+        id: newId,
+        customerId: oldLend.customerId,
+        subName: oldLend.subName,
+        date: newDateStr,
+        state: 'matured-Renew',
+        weeks: lendWeeks,
+        lendIds: [oldLend.id],
+        amount: oldLend.dueAmount,
+        interest: interest,
+        total: newAmount,
+        paidAmount: 0,
+        dueAmount: newAmount,
+      };
+
+      const tx = db.transaction(['lendings', 'transactions'], 'readwrite');
+      const lendStore = tx.objectStore('lendings');
+      const transStore = tx.objectStore('transactions');
+
+      oldLend.active = false;
+	  oldLend.successor=newId;
+      lendStore.put(oldLend);
+      lendStore.add(newLend);
+      transStore.add(transaction);
+
+      tx.oncomplete = () => {
+        completedCount++;
+        if (completedCount === lendings.length) {
+          document.getElementById("loader").style.display = "none"; // Hide loader
+          document.getElementById("renewAllBtn").style.display = 'none';
+
+          const clearBtn = document.createElement('button');
+          clearBtn.textContent = 'Clear';
+          clearBtn.classList.add('btn', 'btn-secondary', 'mt-2');
+          clearBtn.onclick = () => loadMaturedRenewals();
+          document.getElementById('maturedRenewalList').appendChild(clearBtn);
+
+          loadMaturedRenewals(false);
+          loadLendings();
+          loadPaymentCustomers();
+          loadTransactions("matured-renew");
+          alert('Renewal completed');
+        }
+      };
+    });
+  });
 }
 
 
