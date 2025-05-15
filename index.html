@@ -23,13 +23,26 @@
 
     <!-- Sections (Initially Only Customer is visible) -->
     <div id="customerSection" class="section active-section">
-      <h5>Customer Master</h5>
+	  <div class="d-flex justify-content-between align-items-center mt-4 mb-1">
+	  <!-- Left aligned title -->
+	  <h5 class="mb-0">Customer Master</h5>
+	  <!-- Right aligned buttons in a row -->
+	  <div class="d-flex gap-2">
+		<button class="btn btn-outline-primary" onclick="exportCustomer()">📤 Exp</button>
+		<label class="btn btn-outline-success mb-0">
+		  📥 Imp
+		  <input type="file" accept=".json" onchange="importCustomer(event)" hidden>
+		</label>
+	  </div>
+	</div>
+      
       <input type="hidden" id="editCustomerIndex" value="-1" />
       <input type="text" id="customerName" class="form-control mb-2" placeholder="Name"/>
       <input type="text" id="customerContact" class="form-control mb-2" placeholder="Contact No."/>
       <input type="number" id="InstallmentAmount" class="form-control mb-2" placeholder="Installment Amount"/>
 	  <button class="btn btn-primary w-100 mb-3" onclick="saveCustomer()">Save Customer</button>
-      <table class="table table-sm table-bordered">
+      
+	  <table class="table table-sm table-bordered">
         <thead>
           <tr><th>#</th><th>Name</th><th>Contact</th><th>Installment Amount</th><th>Actions</th></tr>
         </thead>
@@ -40,6 +53,10 @@
     <div id="settingsSection" class="section">
       <h5>Settings</h5>
       <div class="d-flex align-items-center mb-2">
+	    <label for="ChitYear" class="me-2 mb-0" style="min-width: 130px;">Chit Year</label>
+	    <input type="text" id="chitYear" class="form-control" placeholder="Year" />
+	  </div>
+	  <div class="d-flex align-items-center mb-2">
 	    <label for="weeklyInterest" class="me-2 mb-0" style="min-width: 130px;">Weekly Interest</label>
 	    <input type="number" id="weeklyInterest" class="form-control" placeholder="Weekly Interest (%)" />
 	  </div>
@@ -120,9 +137,69 @@
     </div>
 	
 	<div id="FundClosure" class="section">
-      <h5>Fund Closure</h5>
-      <div id="statusList"></div>
-    </div>
+	  <h5>Fund Closure</h5>
+
+	  <!-- Closure Date -->
+	  <label>Select Closure Date</label>
+	  <input type="date" id="closureDate" class="form-control mb-3" onkeydown="return false;">
+
+	  <!-- Cash in Hand -->
+	  <label>Cash in Hand</label>
+	  <input type="number" id="cashInHand" class="form-control mb-3" placeholder="Enter Cash in Hand Amount">
+
+	  <!-- Closure Expenses -->
+	  <label>Closure Expenses</label>
+	  <input type="number" id="closureExpense" class="form-control mb-3" placeholder="Enter Closure Expense Amount">
+
+	  <!-- Load Active Lends -->
+	  <button id="btnLoadClosureLends" class="btn btn-primary w-100 mb-3" onclick="loadMaturedRenewals(true,true)">Load Active Lends</button>
+
+	  <!-- Closure Lends Table -->
+	  <div id="closureLendTable">
+	    <h6>Active Lends</h6>
+	    <div id="closureLendList" class="mb-3"></div>
+		  <table class="table table-sm table-bordered">
+			<thead>
+			  <tr>
+				<th>Customer</th>
+				<th>Date</th>
+				<th>Lends Covered</th>
+				<th>Interest</th>
+				<th>Paid</th>
+				<th>Due Amount</th>
+				<th>Actions</th>
+			  </tr>
+			</thead>
+			<tbody id="closureLendTableBody"></tbody>
+		  </table>
+	  </div>
+	  <!-- Calculated Results Summary -->
+	  <h6 class="mt-4">Summary</h6>
+	  <div id="closureSummaryLabel" class="mb-2"></div>
+
+	  <!-- Distribution Table -->
+	  <h6>Customer Distribution</h6>
+	  <table class="table table-sm table-bordered">
+		<thead>
+		  <tr>
+			<th>Customer Name</th>
+			<th>Weekly Amount</th>
+			<th>Chit Units</th>
+			<th>Paid Chit Amount</th>
+			<th>Mature Amount</th>
+			<th>Lend Amount</th>
+			<th>Distribution Amount</th>
+			<th>Closure Expense</th>
+			<th>Final Amount</th>
+		  </tr>
+		</thead>
+		<tbody id="closureTableBody"></tbody>
+	  </table>
+
+	  <!-- Save Button -->
+	  <button id="btnSaveClosureSummary" class="btn btn-success w-100 mt-3" onclick="saveChitClosureDetails()">Save Closure Summary</button>
+	</div>
+
 
     <div id="exportImportSection" class="section">
       <h5>Export / Import</h5>
@@ -134,13 +211,16 @@
         </label>
       </div>
       <small class="text-muted d-block mt-2">Exported files can be saved and imported later to restore all app data.</small>
-    </div>
+      <br>
+	  <h5>Clear Complete Data</h5>
+		<button id="btnClearAllData" class="btn btn-danger w-100 mt-3" onclick="clearAllFromDB()">Clear All Data</button>
+	</div>
 
     <div class="bottom-nav">
-      <button class="active" onclick="showSection('customerSection', event)">Customers</button>
+      <button class="active" onclick="showSection('customerSection', event)">Customer</button>
       <button onclick="showSection('settingsSection', event)">Settings</button>
       <button onclick="showSection('lendingSection', event)">Lend</button>
-      <button onclick="showSection('transactionSection', event)">Transaction</button>
+      <button onclick="showSection('transactionSection', event)">Tranx</button>
       <button onclick="showSection('maturedRenewalSection', event)">Renewal</button>
       <button onclick="showSection('statusSection', event)">Report</button>
       <button onclick="showSection('FundClosure', event)">Closure</button>
@@ -150,7 +230,7 @@
 	<div id="loader" style="display: none; position: fixed; top: 0; left: 0; 
 	  width: 100%; height: 100%; background: rgba(255, 255, 255, 0.8); 
 	  z-index: 9999; text-align: center; padding-top: 20%;">
-	  <div style="font-size: 1.5em;">⏳ Processing renewals...</div>
+	  <div style="font-size: 1.5em;">⏳ Processing transactions...</div>
 	</div>
   <script src="app.js"></script>
   <link href="style.css" rel="stylesheet" />
