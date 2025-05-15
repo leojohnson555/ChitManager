@@ -64,11 +64,9 @@ if ("serviceWorker" in navigator) {
   });
 }
 
-
-
-
+//==========##### APP FUNCTIONS #####==========
 const dbName = 'ChitFinanceDB';
-const dbVersion = 1;
+const dbVersion = 2;
 let db;
 // ========== INIT ==========
 function initDB() {
@@ -91,6 +89,10 @@ function initDB() {
         if (!db.objectStoreNames.contains('settings')) {
             db.createObjectStore('settings', { keyPath: 'id' });
         }
+		if (!db.objectStoreNames.contains('financeClosureDetails')) {
+            db.createObjectStore('financeClosureDetails', { keyPath: 'id' });
+        }
+		
     };
     request.onsuccess = function (e) {
         db = e.target.result;
@@ -223,7 +225,6 @@ function loadCustomerDropdowns() {
     const cursor = e.target.result;
     if (cursor) {
       const { id, name } = cursor.value;
-	  console.log('Loaded customer:', id, name);
       lendDropdown.innerHTML += `<option value="${id}">${name}</option>`;
       cursor.continue();
     }
@@ -241,6 +242,7 @@ function saveSettings() {
   const interestCycle = parseInt(document.getElementById('interestCycle').value);
   const ChitDuration = parseInt(document.getElementById('ChitDuration').value);
   const ChitUnit = parseFloat(document.getElementById('ChitUnit').value);
+  const chitYear = document.getElementById('chitYear').value;
   
   if (isNaN(weeklyInterest) || isNaN(interestCycle)) {
     alert('Please enter valid values for interest settings.');
@@ -252,7 +254,8 @@ function saveSettings() {
     weeklyInterest,
     interestCycle,
 	ChitDuration,
-	ChitUnit
+	ChitUnit,
+	chitYear
   };
 
   const transaction = db.transaction(['settings'], 'readwrite');
@@ -272,7 +275,7 @@ function saveSettings() {
 function loadSettings() {
   const tx = db.transaction('settings', 'readonly');
   const store = tx.objectStore('settings');
-  const request = store.get('settings'); // 👈 Use the correct key
+  const request = store.get('settings'); // Constant key for Settings
 
   request.onsuccess = function () {
     const settings = request.result;
@@ -281,6 +284,7 @@ function loadSettings() {
       document.getElementById("interestCycle").value = settings.interestCycle || "";
       document.getElementById("ChitDuration").value = settings.ChitDuration || "";
       document.getElementById("ChitUnit").value = settings.ChitUnit || "";
+      document.getElementById("chitYear").value = settings.chitYear || "";
     }
   };
 
@@ -393,14 +397,8 @@ async function saveLendingWithTransaction(entry, isPaymentAdded = false) {
 	  else{
 		  amount=entry.amount;}
 		  
-	  if(isPaymentAdded){
-		id=generateId();}
-		else{
-		id=entry.id;}
-		  
       // Save/Update corresponding transaction
       const transEntry = {
-        id: id, // Same as lend ID for easy traceability
         customerId: entry.customerId,
         subName: entry.subName,
         date: entry.date,
@@ -745,7 +743,6 @@ async function submitTransaction() {
   // Save payment
   const payStore = getTransaction('transactions', 'readwrite');
   const newPayment = {
-    id: newId,
 	customerId:currentPaymentCalc.customerId,
 	subName:currentPaymentCalc.subName,
     date: currentPaymentCalc.date,
@@ -811,14 +808,20 @@ function clearTransactionScreen() {
 }
 
 async function loadTransactions(screen) {
-  const tbody = screen === "Transaction"
-    ? document.getElementById('paymentTableBody')
-    : document.getElementById('renewedTableBody');
+  let tbody;
+  if(screen === "Transaction"){  
+    tbody = document.getElementById('paymentTableBody');
+  }else if(screen === "matured-renewal"){ 
+     tbody = document.getElementById('renewedTableBody');
+  } else if(screen === "closure"){ 
+     tbody = document.getElementById('closureLendTableBody');
+  }
+  
   tbody.innerHTML = '';
 
   const transactions = await getTransactions();
   
-  const selectedDate = document.getElementById('renewalDate').value;
+  const selectedDate = document.getElementById(screen === "matured-renewal"? 'renewalDate' : 'closureDate').value;
   
   let renewTransactions;
   // Filter only "renew" transactions
@@ -910,22 +913,24 @@ async function deletePayment(id) {
 
 //========== MATURED - RENEWAL ==========
 
-async function loadMaturedRenewals(reset = true) {
-  const container = document.getElementById('maturedRenewalList');
+async function loadMaturedRenewals(reset = true, isClosure=false) {
+  const container = document.getElementById(isClosure===true ? 'closureLendList':'maturedRenewalList');
   if (reset) {
   container.innerHTML = '';}
 
-  const selectedDate = document.getElementById('renewalDate').value;
-  if (!selectedDate) return;
+  const selectedDate = document.getElementById(isClosure===true ? 'closureDate' : 'renewalDate').value;
+  if (!selectedDate) {
+	  alert("⚠️ Select closure date");
+	  return;
+  }
 
   const [lendings, settings] = await Promise.all([getLendings(), getSettings()]);
-
   const matured = lendings.filter(l => {
-    if (!l.active) return false;
-    const weeks = getWeeksBetween(l.date, selectedDate);
-    return weeks >= parseInt(settings.interestCycle);
-  });
-
+			if (!l.active) return false;
+			const weeks = getWeeksBetween(l.date, selectedDate);
+			return weeks >= isClosure===true? 1: parseInt(settings.interestCycle);
+		});
+  
   if (reset) {
     for (const l of matured) {
       const name = await getLendCustomerName(l.customerId, l.subName);
@@ -934,26 +939,37 @@ async function loadMaturedRenewals(reset = true) {
       div.textContent = `${name} - ₹${l.dueAmount} on ${formatDate(l.date)} (weeks-${lendweeks})`;
       container.appendChild(div);
     }
-
+	
     if (matured.length > 0) {
       const btn = document.createElement('button');
-      btn.textContent = 'Renew All';
+      btn.textContent = isClosure===true? 'Calculate all Lends' : 'Renew All';
       btn.classList.add('btn', 'btn-success', 'mt-2');
-      btn.id = 'renewAllBtn';
-      btn.onclick = () => renewAllMaturedLends(matured, selectedDate);
+      btn.id = isClosure===true? 'calculateAllLendsBtn' : 'renewAllBtn';
+      btn.onclick = () => renewAllMaturedLends(matured, selectedDate,isClosure);
       container.appendChild(btn);
     } else {
-      container.textContent = 'No matured lendings on selected date.';
-    }
+      container.textContent = isClosure===true ? 'No pending lends for process':'No matured lendings on selected date.';
+	  if(isClosure===true){
+		const actionBtn = document.createElement('button');
+		actionBtn.textContent ='Proceed Closure';
+		actionBtn.classList.add('btn', 'btn-info', 'mt-2');
+		actionBtn.onclick = () => performChitClosure();
+		document.getElementById('closureLendList').appendChild(actionBtn);
+		  }
+    
+	}
   }
 }
 
-function renewAllMaturedLends(lendings, selectedDate) {
+function renewAllMaturedLends(lendings, selectedDate,isClosure) {
   if (!lendings || lendings.length === 0) {
     alert("⚠️ Load matured lends again.");
     return;
   }
-
+  if (confirm("Are you sure want to continue for closure lend calculations?")) {
+  }
+  else{ return;}
+  
   document.getElementById("loader").style.display = "block"; // Show loader
 
   getSettings().then(settings => {
@@ -981,12 +997,10 @@ function renewAllMaturedLends(lendings, selectedDate) {
 		successor:null,
 		predecessor: [oldLend.id],
       };
-	  
 
       const lendWeeks = [{ lendId: oldLend.id, weeks: weeksPassed }];
 
       const transaction = {
-        id: newId,
         customerId: oldLend.customerId,
         subName: oldLend.subName,
         date: newDateStr,
@@ -1014,18 +1028,26 @@ function renewAllMaturedLends(lendings, selectedDate) {
         completedCount++;
         if (completedCount === lendings.length) {
           document.getElementById("loader").style.display = "none"; // Hide loader
-          document.getElementById("renewAllBtn").style.display = 'none';
-
-          const clearBtn = document.createElement('button');
-          clearBtn.textContent = 'Clear';
-          clearBtn.classList.add('btn', 'btn-secondary', 'mt-2');
-          clearBtn.onclick = () => loadMaturedRenewals();
-          document.getElementById('maturedRenewalList').appendChild(clearBtn);
-
-          loadMaturedRenewals(false);
+          
+          const actionBtn = document.createElement('button');
+		  if(isClosure===true){
+			  document.getElementById("calculateAllLendsBtn").style.display = 'none';
+			  actionBtn.textContent ='Proceed Closure';
+			  actionBtn.classList.add('btn', 'btn-info', 'mt-2');
+			  actionBtn.onclick = () => performChitClosure();
+			  document.getElementById('closureLendList').appendChild(actionBtn);
+		  }else{
+			  document.getElementById("renewAllBtn").style.display = 'none';
+			  actionBtn.textContent ='Clear';
+			  actionBtn.classList.add('btn', 'btn-secondary', 'mt-2');
+			  actionBtn.onclick = () => loadMaturedRenewals();
+			  document.getElementById('maturedRenewalList').appendChild(actionBtn);
+		  }
+		  
+          loadMaturedRenewals(false,isClosure);
           loadLendings();
           loadPaymentCustomers();
-          loadTransactions("matured-renew");
+          loadTransactions(isClosure===true? "closure" : "matured-renewal");
           alert('Renewal completed');
         }
       };
@@ -1033,8 +1055,215 @@ function renewAllMaturedLends(lendings, selectedDate) {
   });
 }
 
+//========== CHIT - CLOSURE ==========
+async function performChitClosure() {
+  
+  const cashInHand = document.getElementById('cashInHand').value;
+  const closureExpense = document.getElementById('closureExpense').value;
+  if(!cashInHand){
+	alert("⚠️ Enter Cash in Hand");
+    return;
+  }
+  // Step 1: Load necessary data
+  const [lends, customers, settings] = await Promise.all([
+    getAllFromStore('lendings'),
+    getAllFromStore('customers'),
+    getFromStore('settings', 'settings')
+  ]);
+
+  // Filter active lends
+  const activeLends = lends.filter(l => l.active);
+
+  // Step 2: Total chit amount = sum of all active lend amounts + cash in hand
+  const totalActiveLendAmount = activeLends.reduce((sum, l) => sum + Number(l.dueAmount), 0);
+  const totalChitAmount = totalActiveLendAmount + Number(cashInHand);
+
+  // Step 3: Total no. of chit units
+  const totalInstallmentAmount = customers.reduce((sum, c) => sum + Number(c.InstallmentAmount), 0);
+  const chitUnit = Number(settings.ChitUnit);
+  const chitDuration=Number(settings.ChitDuration);
+  const totalChitUnits = totalInstallmentAmount / chitUnit;
+
+  // Step 4: Matured chit amount per unit
+  const maturedPerUnit = Math.floor(totalChitAmount / totalChitUnits);
+
+  // Step 5: Compute customer-wise results
+  const perCustomerExpense = Math.floor(closureExpense / customers.length);
+  const tableData = customers.map(c => {
+    const customerLends = activeLends.filter(l => l.customerId === c.id);
+    const totalLendAmount = customerLends.reduce((sum, l) => sum + Number(l.amount), 0);
+    const chitUnitsPerCustomer = c.InstallmentAmount / chitUnit;
+    const maturedAmount = Math.floor(chitUnitsPerCustomer * maturedPerUnit);
+    const distributionAmount = maturedAmount - totalLendAmount;
+    const finalAmount = distributionAmount - perCustomerExpense;
+	const totalInstallmentAmount= c.InstallmentAmount*chitDuration;
+
+    return {
+      name: c.name,
+	  installmentAmount: c.InstallmentAmount,
+      chitUnits: chitUnitsPerCustomer,
+      chitPaid: totalInstallmentAmount,
+      maturedAmount,
+	  lendAmount:totalLendAmount,
+      distributionAmount,
+      expense: perCustomerExpense,
+      finalAmount
+    };
+  });
+  const selectedDate = document.getElementById('closureDate').value;
+  if (!selectedDate) {
+	  alert("⚠️ Select closure date");
+	  return;
+  }
+  formatDate
+  const closureSummary={
+	  id: `closure_${formatDate(selectedDate)}`,
+      actionDate: getToday(),
+	  closureDate: formatDate(selectedDate),
+	  summary: {
+      totalChitAmount,
+      cashInHand,
+	  totalActiveLendAmount,
+      totalChitUnits,
+      maturedPerUnit,
+      closureExpense,
+	  chitDuration
+    },
+    customerBreakup: tableData
+  };
+  // Step 6: Display labels and table (you can bind this to your UI)
+  displayClosureSummary(closureSummary);
+
+  // Optionally store for saving later
+  window.financeClosureDetails = closureSummary;
+}
+
+// Save button handler
+async function saveChitClosureDetails() {
+  if (!window.financeClosureDetails) {
+    alert("No closure details found. Please perform calculations first.");
+    return;
+  }
+
+  await addToStore('financeClosureDetails', window.financeClosureDetails);
+  alert("Closure details saved successfully.");
+}
+
+function displayClosureSummary(closureSummary) {
+  document.getElementById('closureSummaryLabel').innerText =
+    `Closure Date : ${closureSummary.closureDate}
+	Total Chit Amount : ₹${closureSummary.summary.totalChitAmount} = ₹${closureSummary.summary.totalActiveLendAmount} + ₹${closureSummary.summary.cashInHand}
+     Total Chit Units : ${closureSummary.summary.totalChitUnits}
+     Matured Amount per Unit : ₹${Number(closureSummary.summary.maturedPerUnit).toFixed(2)}
+	 Chit Duration : ${closureSummary.summary.chitDuration}`;
+
+  const tbody = document.getElementById('closureTableBody');
+  tbody.innerHTML = '';
+  closureSummary.customerBreakup.forEach(row => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${row.name}</td>
+      <td>${row.installmentAmount}</td>
+      <td>${row.chitUnits}</td>
+      <td>${row.chitPaid}</td>
+      <td>${row.maturedAmount}</td>
+      <td>${row.lendAmount}</td>
+      <td>${row.distributionAmount}</td>
+      <td>${row.expense}</td>
+      <td>${row.finalAmount}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+async function checkAndShowClosureDetails() {
+  const dbRequest = indexedDB.open(dbName);
+
+  dbRequest.onsuccess = () => {
+    const db = dbRequest.result;
+    const tx = db.transaction('financeClosureDetails', 'readonly');
+    const store = tx.objectStore('financeClosureDetails');
+
+    const getAllRequest = store.getAll(); 
+    getAllRequest.onsuccess = () => {
+      const records = getAllRequest.result;
+
+      if (records.length > 0) {
+        const latestClosure = records[records.length - 1];
+		
+        displayClosureSummary(latestClosure);
+        document.getElementById('btnLoadClosureLends').style.display = 'none';
+        document.getElementById('closureLendTable').style.display = 'none';
+        document.getElementById('btnSaveClosureSummary').style.display = 'none';
+		
+      }
+    };
+
+    getAllRequest.onerror = () => {
+      console.error('Error loading closure details:', getAllRequest.error);
+    };
+  };
+
+  dbRequest.onerror = () => {
+    console.error('Failed to open database.');
+  };
+}
 
 //========== EXPORT - IMPORT ==========
+function exportCustomer() {
+  getAllFromStore('customers').then(data => {
+    const json = JSON.stringify(data, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement('a');
+    a.href = url;
+	
+	const now = new Date();
+    const dd = String(now.getDate()).padStart(2, '0');
+    const mm = String(now.getMonth() + 1).padStart(2, '0'); // Months are 0-based
+    const yyyy = now.getFullYear();
+    const dateStr = `${dd}${mm}${yyyy}`;
+
+    a.download = `${dbName}_customers_backup_${dateStr}.json`;
+	
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+}
+function importCustomer(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = async function (e) {
+    try {
+      const importedData = JSON.parse(e.target.result);
+	  if (
+        !Array.isArray(importedData) ||
+        !importedData.every(item =>
+          item &&
+          typeof item.name === 'string' &&
+          typeof item.contact === 'string' &&
+          typeof item.InstallmentAmount === 'number'
+        )
+      ) {
+        throw new Error('Invalid format');
+      }
+	  
+	  await clearAndWriteStore('customers', importedData || []);
+      alert('Customer data imported successfully!');
+      location.reload(); // Optional: refresh to reflect data
+    } catch (err) {
+      alert('Invalid file or format. Expected: array of { name, contact, InstallmentAmount }.');
+    }
+  };
+  reader.readAsText(file);
+}
+async function clearAllFromDB() {
+  if (confirm("Are you sure you want to delete all data?")) {
+    await clearAllData();
+	  location.reload();
+  }
+}
 // Export Data (Download)
 function exportData() {
   getAllAppData().then(data => {
@@ -1044,7 +1273,15 @@ function exportData() {
 
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${dbName}_backup.json`;
+	
+	const now = new Date();
+    const dd = String(now.getDate()).padStart(2, '0');
+    const mm = String(now.getMonth() + 1).padStart(2, '0'); // Months are 0-based
+    const yyyy = now.getFullYear();
+    const dateStr = `${dd}${mm}${yyyy}`;
+
+    a.download = `${dbName}_backup_${dateStr}.json`;
+	
     a.click();
     URL.revokeObjectURL(url);
   });
@@ -1069,30 +1306,67 @@ function importData(event) {
   reader.readAsText(file);
 }
 
-// Reads all your app data (from IndexedDB or localStorage)
+//Save the table to db
+async function addToStore(storeName, data) {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(dbName, dbVersion);
+
+    request.onerror = () => {
+      console.error('Database failed to open');
+      reject('Database error');
+    };
+
+    request.onsuccess = () => {
+      const db = request.result;
+      const tx = db.transaction(storeName, 'readwrite');
+      const store = tx.objectStore(storeName);
+      const addRequest = store.add(data);
+
+      addRequest.onsuccess = () => {
+        resolve();
+      };
+
+      addRequest.onerror = () => {
+        console.error('Add operation failed', addRequest.error);
+        reject('Add operation failed');
+      };
+
+      tx.oncomplete = () => db.close();
+    };
+
+    request.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains(storeName)) {
+        db.createObjectStore(storeName, { keyPath: 'id' });
+      }
+    };
+  });
+}
+
+// Reads all your app data (from IndexedDB)
 async function getAllAppData() {
   const customers = await getAllFromStore('customers');
   const lendings = await getAllFromStore('lendings');
   const payments = await getAllFromStore('transactions');
-  const settings = JSON.parse(localStorage.getItem('settings') || '{}');
+  const settings = await getAllFromStore('settings');
 
   return { customers, lendings, payments, settings };
 }
 
-// Writes imported data to IndexedDB and localStorage
+// Writes imported data to IndexedDB
 async function restoreAppData(data) {
   if (!data) return;
 
   await clearAndWriteStore('customers', data.customers || []);
   await clearAndWriteStore('lendings', data.lendings || []);
   await clearAndWriteStore('transactions', data.payments || []);
-  localStorage.setItem('settings', JSON.stringify(data.settings || {}));
+  await clearAndWriteStore('settings', data.settings || []);
 }
 
 // Helper for reading a store
 async function getAllFromStore(storeName) {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open('ChitAppDB');
+    const request = indexedDB.open(dbName);
     request.onsuccess = () => {
       const db = request.result;
       const tx = db.transaction(storeName, 'readonly');
@@ -1103,11 +1377,26 @@ async function getAllFromStore(storeName) {
     };
   });
 }
+// Helper for reading a key record from store
+async function getFromStore(storeName, key) {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(dbName);
+    request.onsuccess = () => {
+      const db = request.result;
+      const tx = db.transaction(storeName, 'readonly');
+      const store = tx.objectStore(storeName);
+      const getRequest = store.get(key);
+      getRequest.onsuccess = () => resolve(getRequest.result);
+      getRequest.onerror = () => reject(getRequest.error);
+    };
+    request.onerror = () => reject(request.error);
+  });
+}
 
 // Helper to clear and write store
 async function clearAndWriteStore(storeName, items) {
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open('ChitAppDB');
+    const request = indexedDB.open(dbName);
     request.onsuccess = () => {
       const db = request.result;
       const tx = db.transaction(storeName, 'readwrite');
@@ -1120,7 +1409,45 @@ async function clearAndWriteStore(storeName, items) {
     };
   });
 }
+async function clearAllData() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(dbName, dbVersion);
 
+    request.onsuccess = () => {
+      const db = request.result;
+
+      const storeNames = [
+        'customers',
+        'lendings',
+        'transactions',
+        'settings',
+        'financeClosureDetails'
+      ];
+
+      const tx = db.transaction(storeNames, 'readwrite');
+
+      for (const storeName of storeNames) {
+        tx.objectStore(storeName).clear();
+      }
+
+      tx.oncomplete = () => {
+        db.close();
+        alert('All data cleared from the database.');
+        resolve();
+      };
+
+      tx.onerror = () => {
+        console.error('Error clearing data:', tx.error);
+        reject(tx.error);
+      };
+    };
+
+    request.onerror = () => {
+      console.error('Failed to open database.');
+      reject(request.error);
+    };
+  });
+}
 
 // ========== START ==========
 window.addEventListener('load', initDB);
@@ -1129,4 +1456,5 @@ document.addEventListener('DOMContentLoaded', function () {
   if (paymentInput) {
     paymentInput.addEventListener('input', addPayment);
   }
+  checkAndShowClosureDetails();
 });
