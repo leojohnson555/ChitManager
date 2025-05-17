@@ -101,6 +101,7 @@ function initDB() {
         loadSettings();
 		loadCustomerDropdowns();
 		loadPaymentCustomers();
+	    checkAndShowClosureDetails();
     };
     request.onerror = function (e) {
         console.error("DB error", e);
@@ -1463,5 +1464,4 @@ document.addEventListener('DOMContentLoaded', function () {
   if (paymentInput) {
     paymentInput.addEventListener('input', addPayment);
   }
-  checkAndShowClosureDetails();
 });
