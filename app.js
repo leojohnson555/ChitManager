@@ -1179,6 +1179,9 @@ async function checkAndShowClosureDetails() {
 
   dbRequest.onsuccess = () => {
     const db = dbRequest.result;
+    if (!db.objectStoreNames.contains('financeClosureDetails')) {
+            db.createObjectStore('financeClosureDetails', { keyPath: 'id' });
+        }
     const tx = db.transaction('financeClosureDetails', 'readonly');
     const store = tx.objectStore('financeClosureDetails');
 
