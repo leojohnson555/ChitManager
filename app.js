@@ -1180,10 +1180,9 @@ async function checkAndShowClosureDetails() {
   dbRequest.onsuccess = () => {
     const db = dbRequest.result;
     if (!db.objectStoreNames.contains('financeClosureDetails')) {
-	    console.log("financeClosureDetails Not Created:", financeClosureDetails);
-            db.createObjectStore('financeClosureDetails', { keyPath: 'id' });
+	    console.log("financeClosureDetails Not Created:");
         }
-	  else{ console.log("financeClosureDetails Not Created:", financeClosureDetails);}
+	  else{ console.log("financeClosureDetails is present:");}
 	  
     const tx = db.transaction('financeClosureDetails', 'readonly');
     const store = tx.objectStore('financeClosureDetails');
