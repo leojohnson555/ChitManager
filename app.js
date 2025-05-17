@@ -1215,25 +1215,34 @@ async function checkAndShowClosureDetails() {
 //========== EXPORT - IMPORT ==========
 function exportCustomer() {
   getAllFromStore('customers').then(data => {
+    if (!data || data.length === 0) {
+      alert('No customers found to export.');
+      return;
+    }
+
     const json = JSON.stringify(data, null, 2);
     const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
 
     const a = document.createElement('a');
     a.href = url;
-	
-	const now = new Date();
+
+    const now = new Date();
     const dd = String(now.getDate()).padStart(2, '0');
     const mm = String(now.getMonth() + 1).padStart(2, '0'); // Months are 0-based
     const yyyy = now.getFullYear();
     const dateStr = `${dd}${mm}${yyyy}`;
 
     a.download = `${dbName}_customers_backup_${dateStr}.json`;
-	
+
     a.click();
     URL.revokeObjectURL(url);
+  }).catch(error => {
+    console.error('Error exporting customers:', error);
+    alert('Failed to export customers.');
   });
 }
+
 function importCustomer(event) {
   const file = event.target.files[0];
   if (!file) return;
@@ -1337,13 +1346,6 @@ async function addToStore(storeName, data) {
       };
 
       tx.oncomplete = () => db.close();
-    };
-
-    request.onupgradeneeded = (e) => {
-      const db = e.target.result;
-      if (!db.objectStoreNames.contains(storeName)) {
-        db.createObjectStore(storeName, { keyPath: 'id' });
-      }
     };
   });
 }
