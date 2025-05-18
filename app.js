@@ -101,7 +101,7 @@ function initDB() {
         loadSettings();
 		loadCustomerDropdowns();
 		loadPaymentCustomers();
-	    checkAndShowClosureDetails();
+		checkAndShowClosureDetails();
     };
     request.onerror = function (e) {
         console.error("DB error", e);
@@ -926,10 +926,12 @@ async function loadMaturedRenewals(reset = true, isClosure=false) {
   }
 
   const [lendings, settings] = await Promise.all([getLendings(), getSettings()]);
+  const interestWeeks= isClosure===true? 1: parseInt(settings.interestCycle);
+  console.log("interestWeeks: ",interestWeeks);
   const matured = lendings.filter(l => {
 			if (!l.active) return false;
 			const weeks = getWeeksBetween(l.date, selectedDate);
-			return weeks >= isClosure===true? 1: parseInt(settings.interestCycle);
+			return weeks >= interestWeeks;
 		});
   
   if (reset) {
@@ -1092,7 +1094,7 @@ async function performChitClosure() {
   const perCustomerExpense = Math.floor(closureExpense / customers.length);
   const tableData = customers.map(c => {
     const customerLends = activeLends.filter(l => l.customerId === c.id);
-    const totalLendAmount = customerLends.reduce((sum, l) => sum + Number(l.amount), 0);
+    const totalLendAmount = customerLends.reduce((sum, l) => sum + Number(l.dueAmount), 0);
     const chitUnitsPerCustomer = c.InstallmentAmount / chitUnit;
     const maturedAmount = Math.floor(chitUnitsPerCustomer * maturedPerUnit);
     const distributionAmount = maturedAmount - totalLendAmount;
@@ -1153,8 +1155,11 @@ async function saveChitClosureDetails() {
 function displayClosureSummary(closureSummary) {
   document.getElementById('closureSummaryLabel').innerText =
     `Closure Date : ${closureSummary.closureDate}
-	Total Chit Amount : ₹${closureSummary.summary.totalChitAmount} = ₹${closureSummary.summary.totalActiveLendAmount} + ₹${closureSummary.summary.cashInHand}
+	 Total InHand Amount : ${closureSummary.summary.cashInHand}
+	 Total Lend Amount : ${closureSummary.summary.totalActiveLendAmount}
+	 Total Chit Amount : ₹${closureSummary.summary.totalChitAmount} = ₹${closureSummary.summary.totalActiveLendAmount} + ₹${closureSummary.summary.cashInHand}
      Total Chit Units : ${closureSummary.summary.totalChitUnits}
+	 Total closure Expense : ${closureSummary.summary.closureExpense}
      Matured Amount per Unit : ₹${Number(closureSummary.summary.maturedPerUnit).toFixed(2)}
 	 Chit Duration : ${closureSummary.summary.chitDuration}`;
 
@@ -1180,11 +1185,6 @@ async function checkAndShowClosureDetails() {
 
   dbRequest.onsuccess = () => {
     const db = dbRequest.result;
-    if (!db.objectStoreNames.contains('financeClosureDetails')) {
-	    console.log("financeClosureDetails Not Created:");
-        }
-	  else{ console.log("financeClosureDetails is present:");}
-	  
     const tx = db.transaction('financeClosureDetails', 'readonly');
     const store = tx.objectStore('financeClosureDetails');
 
@@ -1273,9 +1273,9 @@ function importCustomer(event) {
   };
   reader.readAsText(file);
 }
-async function clearAllFromDB() {
+function clearAllFromDB() {
   if (confirm("Are you sure you want to delete all data?")) {
-    await clearAllData();
+    resetAppDatabase();
 	  location.reload();
   }
 }
@@ -1417,45 +1417,24 @@ async function clearAndWriteStore(storeName, items) {
     };
   });
 }
-async function clearAllData() {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open(dbName, dbVersion);
 
-    request.onsuccess = () => {
-      const db = request.result;
+function resetAppDatabase() {
+  const deleteRequest = indexedDB.deleteDatabase(dbName);
 
-      const storeNames = [
-        'customers',
-        'lendings',
-        'transactions',
-        'settings',
-        'financeClosureDetails'
-      ];
+  deleteRequest.onsuccess = function () {
+    initDB(); // Recreate DB from scratch
+    alert("App data reset successfully.");
+  };
 
-      const tx = db.transaction(storeNames, 'readwrite');
+  deleteRequest.onerror = function (event) {
+    console.error("Error deleting database:", event.target.error);
+  };
 
-      for (const storeName of storeNames) {
-        tx.objectStore(storeName).clear();
-      }
-
-      tx.oncomplete = () => {
-        db.close();
-        alert('All data cleared from the database.');
-        resolve();
-      };
-
-      tx.onerror = () => {
-        console.error('Error clearing data:', tx.error);
-        reject(tx.error);
-      };
-    };
-
-    request.onerror = () => {
-      console.error('Failed to open database.');
-      reject(request.error);
-    };
-  });
+  deleteRequest.onblocked = function () {
+    console.warn("Database delete blocked. Close other tabs or apps using it.");
+  };
 }
+
 
 // ========== START ==========
 window.addEventListener('load', initDB);
