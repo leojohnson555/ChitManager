@@ -101,6 +101,7 @@ function initDB() {
         loadSettings();
 		loadCustomerDropdowns();
 		loadPaymentCustomers();
+		loadSearchCustomer();
 		checkAndShowClosureDetails();
     };
     request.onerror = function (e) {
@@ -415,6 +416,7 @@ async function saveLendingWithTransaction(entry, isPaymentAdded = false) {
 	
       transStore.put(transEntry);
 	  loadPaymentCustomers();
+	  loadSearchCustomer();
       tx.oncomplete = () => resolve(true);
       tx.onerror = (e) => reject(e);
     } catch (err) {
@@ -575,8 +577,9 @@ async function getTransactions() {
   });
 }
 
-async function loadPaymentCustomers() {
-  const activeLends = (await getLendings()).filter(l => l.active == true);
+async function loadPaymentCustomers(UIControl='paymentCustomerSelect') {  
+  const activeLends = (await getLendings()).filter(
+	l => l.active == (UIControl=='SearchCustomerSelect'? l.active : true));
 
   // Create a map with unique customerId + subName combination
   const uniqueKeys = new Set();
@@ -601,7 +604,7 @@ async function loadPaymentCustomers() {
   // Sort names alphabetically
   uniqueNames.sort((a, b) => a.fullName.localeCompare(b.fullName));
   
-  const select = document.getElementById('paymentCustomerSelect');
+  const select = document.getElementById(UIControl);
   select.innerHTML = '<option value="">-- Select --</option>';
 
   uniqueNames.forEach(({ customerId, subName, fullName }) => {
@@ -627,7 +630,7 @@ async function loadCustomerActiveLends() {
 
   lends.forEach((lend, index) => {
   const weeks = getWeeksBetween(lend.date, getPaymentDate());
-  const labelText = `${lend.date} - ₹${lend.dueAmount} (${weeks} weeks)`;
+  const labelText = `${formatDate(lend.date)} - ₹${lend.dueAmount} (${weeks} weeks)`;
 
   const checkbox = document.createElement('input');
   const checkboxId = `lendCheckbox_${lend.id}_${index}`; // unique ID for each checkbox
@@ -859,7 +862,6 @@ async function loadTransactions(screen) {
   });
 }
 
-
 async function deletePayment(id) {
   if (!confirm("Delete this transaction?")) return;
 
@@ -1059,6 +1061,178 @@ function renewAllMaturedLends(lendings, selectedDate,isClosure) {
   });
 }
 
+//========== REPORT ==========
+async function loadSearchCustomer(){
+	await loadPaymentCustomers('SearchCustomerSelect');
+}
+async function searchTransaction() {
+  const selectedOption = document.getElementById('SearchCustomerSelect').value;
+
+  const { customerId, subName } = JSON.parse(selectedOption); // Retrieve customerId and subName from the selected option
+  const fromDate = document.getElementById("searchFromDate").value;
+  const toDate = document.getElementById("searchToDate").value;
+
+  const filters = {
+    customerId: customerId || null,
+    subName: subName || null,
+    fromDate: fromDate || null,
+    toDate: toDate || null
+  };
+
+  const filteredTransactions = await searchTransactions(filters);
+  renderTransactionTable(filteredTransactions);
+}
+
+async function searchTransactions({ customerId = null, subName = null, fromDate = null, toDate = null }) {
+  const results = [];
+
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('transactions', 'readonly');
+    const store = tx.objectStore('transactions');
+    const request = store.openCursor();
+
+    request.onerror = () => reject("Failed to search transactions");
+
+    request.onsuccess = (event) => {
+      const cursor = event.target.result;
+      if (cursor) {
+        const tx = cursor.value;
+
+        let matches = true;
+
+        if (customerId !== null) {
+		  matches = matches && tx.customerId === customerId;
+
+		  if (subName !== null) {
+			matches = matches && tx.subName === subName;
+		  } else {
+			matches = matches && (tx.subName === null || tx.subName === "");
+		  }
+		}
+
+        if (fromDate) {
+          const txDate = new Date(tx.date);
+          const from = new Date(fromDate);
+          matches = matches && txDate >= from;
+        }
+
+        if (toDate) {
+          const txDate = new Date(tx.date);
+          const to = new Date(toDate);
+          matches = matches && txDate <= to;
+        }
+
+        if (matches) results.push(tx);
+
+        cursor.continue();
+      } else {
+        resolve(results);
+      }
+    };
+  });
+}
+
+async function renderTransactionTable(transactions) {
+  const container = document.getElementById("transactionSearchTable");
+  container.innerHTML = "";
+
+  if (transactions.length === 0) {
+    container.innerHTML = "<p>No transactions found.</p>";
+    return;
+  }
+
+  const tableWrapper = document.createElement("div");
+  tableWrapper.className = "table-responsive";
+
+  const table = document.createElement("table");
+  table.className = "table table-bordered table-striped table-hover";
+
+  const headers = ["Lend Customer", "Date", "Amount", "Interest", "Total", "Paid", "Due", "Lends"];
+  const thead = table.createTHead();
+  const headerRow = thead.insertRow();
+  headers.forEach(h => {
+    const th = document.createElement("th");
+    th.textContent = h;
+    headerRow.appendChild(th);
+  });
+
+  const tbody = table.createTBody();
+
+  for (const tx of transactions) {
+    const txRowId = `lends-${tx.id}`;
+
+    const row = tbody.insertRow();
+    row.insertCell().textContent = await getLendCustomerName(tx.customerId, tx.subName);
+    row.insertCell().textContent = formatDate(tx.date);
+    row.insertCell().textContent = tx.amount;
+    row.insertCell().textContent = tx.interest;
+    row.insertCell().textContent = tx.total;
+    row.insertCell().textContent = tx.paidAmount;
+    row.insertCell().textContent = tx.dueAmount;
+
+    // Expand/collapse button
+    const expandCell = row.insertCell();
+    const btn = document.createElement("button");
+    btn.className = "btn btn-sm btn-outline-primary toggle-btn";
+    btn.innerHTML = '<span class="toggle-icon">▶</span>';
+    btn.onclick = () => toggleLendDetails(txRowId, tx.lendIds, btn);
+    expandCell.appendChild(btn);
+
+    // Hidden row for lend details
+    const detailRow = tbody.insertRow();
+    detailRow.id = txRowId;
+    const detailCell = detailRow.insertCell();
+    detailCell.colSpan = headers.length;
+    detailCell.style.display = "none";
+    detailCell.className = "bg-light";
+  }
+
+  tableWrapper.appendChild(table);
+  container.appendChild(tableWrapper);
+}
+
+async function toggleLendDetails(rowId, lendIds, btn) {
+  const detailRow = document.getElementById(rowId);
+  const detailCell = detailRow.cells[0];
+  const icon = btn.querySelector(".toggle-icon");
+
+  if (detailCell.style.display === "none") {
+    // Expand
+    const allLends = await getLendings();
+    const lends = allLends.filter(l => lendIds.includes(l.id));
+
+    const lendTable = document.createElement("table");
+    lendTable.className = "table table-sm table-bordered mt-2";
+    
+    const subHeaders = ["Lend Date", "Lend Amount", "Current Due Amount"];
+    const thead = lendTable.createTHead();
+    const headerRow = thead.insertRow();
+    subHeaders.forEach(text => {
+      const th = document.createElement("th");
+      th.textContent = text;
+      headerRow.appendChild(th);
+    });
+
+    const tbody = lendTable.createTBody();
+    lends.forEach(l => {
+      const row = tbody.insertRow();
+      row.insertCell().textContent = formatDate(l.date);
+      row.insertCell().textContent = l.amount;
+      row.insertCell().textContent = l.dueAmount;
+    });
+
+    detailCell.innerHTML = "";
+    detailCell.appendChild(lendTable);
+    detailCell.style.display = "table-cell";
+    icon.textContent = "▼";
+  } else {
+    // Collapse
+    detailCell.style.display = "none";
+    detailCell.innerHTML = "";
+    icon.textContent = "▶";
+  }
+}
+
 //========== CHIT - CLOSURE ==========
 async function performChitClosure() {
   
@@ -1119,7 +1293,7 @@ async function performChitClosure() {
 	  alert("⚠️ Select closure date");
 	  return;
   }
-  formatDate
+  
   const closureSummary={
 	  id: `closure_${formatDate(selectedDate)}`,
       actionDate: getToday(),
@@ -1155,7 +1329,7 @@ async function saveChitClosureDetails() {
 
 function displayClosureSummary(closureSummary) {
   document.getElementById('closureSummaryLabel').innerText =
-    `Closure Date : ${closureSummary.closureDate}
+    `Closure Date : ${formatDate(closureSummary.closureDate)}
 	 Total InHand Amount : ${closureSummary.summary.cashInHand}
 	 Total Lend Amount : ${closureSummary.summary.totalActiveLendAmount}
 	 Total Chit Amount : ₹${closureSummary.summary.totalChitAmount} = ₹${closureSummary.summary.totalActiveLendAmount} + ₹${closureSummary.summary.cashInHand}
