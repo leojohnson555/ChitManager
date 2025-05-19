@@ -123,40 +123,63 @@ function generateId() {
 }
 
 function formatDisplayDate(dateStr) {
-  const cleaned = dateStr.replace(/\//g, '-');
+  if (!dateStr) return '';
+
+  // If it's a Date object
+  if (dateStr instanceof Date && !isNaN(dateStr)) {
+    const dd = String(dateStr.getDate()).padStart(2, '0');
+    const mm = String(dateStr.getMonth() + 1).padStart(2, '0');
+    const yyyy = dateStr.getFullYear();
+    return `${dd}-${mm}-${yyyy}`;
+  }
+
+  if (typeof dateStr !== 'string') return '';
+
+  const cleaned = dateStr.trim().replace(/\//g, '-');
   const parts = cleaned.split('-');
 
+  // yyyy-mm-dd format
   if (parts.length === 3 && parts[0].length === 4) {
-    // Input is yyyy-mm-dd
     const [yyyy, mm, dd] = parts;
     return `${dd.padStart(2, '0')}-${mm.padStart(2, '0')}-${yyyy}`;
   }
 
+  // dd-mm-yyyy format
   if (parts.length === 3 && parts[2].length === 4) {
-    // Input is already dd-mm-yyyy
     const [dd, mm, yyyy] = parts;
     return `${dd.padStart(2, '0')}-${mm.padStart(2, '0')}-${yyyy}`;
   }
 
-  throw new Error('Invalid date format');
+  return ''; // Or: throw new Error('Invalid date format');
 }
 
+
 function formatDBDate(dateStr) {
-  // Detect format based on position of the year
-  const parts = dateStr.split('-');
-  
-  // Check for yyyy-mm-dd format (first part has 4 digits)
-  if (parts.length === 3 && parts[0].length === 4) {
-    return dateStr; // Already in correct format
+  if (!dateStr) return '';
+
+  // If a Date object is passed, convert to yyyy-mm-dd
+  if (dateStr instanceof Date && !isNaN(dateStr)) {
+    const yyyy = dateStr.getFullYear();
+    const mm = String(dateStr.getMonth() + 1).padStart(2, '0');
+    const dd = String(dateStr.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
   }
 
-  // If in dd-mm-yyyy format, convert it
+  if (typeof dateStr !== 'string') return '';
+
+  const cleaned = dateStr.trim().replace(/\//g, '-');
+  const parts = cleaned.split('-');
+
+  if (parts.length === 3 && parts[0].length === 4) {
+    return cleaned; // already yyyy-mm-dd
+  }
+
   if (parts.length === 3 && parts[2].length === 4) {
     const [dd, mm, yyyy] = parts;
     return `${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`;
   }
 
-  throw new Error('Invalid date format');
+  return '';
 }
 
 
@@ -339,7 +362,7 @@ function getSettings() {
 // ========== LENDING (with IndexedDB) ==========
 // Add or update lending
 async function addLent() {
-  const date = document.getElementById('lendDate').value;
+  const date = formatDBDate(document.getElementById('lendDate').value);
   const customerId = parseInt(document.getElementById('lendCustomer').value);
   const subName = document.getElementById('lendSubName').value.trim();
   const amount = parseFloat(document.getElementById('lendAmount').value);
@@ -349,7 +372,7 @@ async function addLent() {
     alert("Please fill all fields correctly.");
     return;
   }
-  date=formatDBDate(date);
+  
   const allLends = await getLendings();
   const existing = allLends.find(
     l => l.date === date && l.customerId === customerId 
@@ -725,13 +748,13 @@ function computePaymentSummary(selectedLends, paymentAmount = 0, paymentDate = g
 
 async function calculatePaymentSummary() {
   const selectedIds = Array.from(document.querySelectorAll('#activeLendsList input:checked')).map(cb => cb.value);
-  const date = document.getElementById('paymentDate').value;
+  const date = formatDBDate(document.getElementById('paymentDate').value);
   if(!date)
   {
 	  alert("Select Date");
 	  return;
   }
-  date=formatDBDate(date);
+  
   const allLends = await getLendings();
   const selectedLends = allLends.filter(l => selectedIds.includes(l.id));
   //const paymentAmount = currentPaymentCalc?.payment || 0;
@@ -856,8 +879,8 @@ async function loadTransactions(screen) {
 
   const transactions = await getTransactions();
   
-  const selectedDate = document.getElementById(screen === "matured-renewal"? 'renewalDate' : 'closureDate').value;
-  selectedDate=formatDBDate(selectedDate);
+  const selectedDate = formatDBDate(document.getElementById(screen === "matured-renewal"? 'renewalDate' : 'closureDate').value);
+  
   let renewTransactions;
   // Filter only "renew" transactions
   if(screen === "Transaction"){
@@ -951,12 +974,11 @@ async function loadMaturedRenewals(reset = true, isClosure=false) {
   if (reset) {
   container.innerHTML = '';}
 
-  const selectedDate = document.getElementById(isClosure===true ? 'closureDate' : 'renewalDate').value;
+  const selectedDate = formatDBDate(document.getElementById(isClosure===true ? 'closureDate' : 'renewalDate').value);
   if (!selectedDate) {
 	  alert("⚠️ Select closure date");
 	  return;
   }
-  selectedDate=formatDBDate(selectedDate);
   const [lendings, settings] = await Promise.all([getLendings(), getSettings()]);
   const interestWeeks= isClosure===true? 1: parseInt(settings.interestCycle);
   console.log("interestWeeks: ",interestWeeks);
@@ -1100,11 +1122,9 @@ async function searchTransaction() {
   const selectedOption = document.getElementById('SearchCustomerSelect').value;
 
   const { customerId, subName } = JSON.parse(selectedOption); // Retrieve customerId and subName from the selected option
-  const fromDate = document.getElementById("searchFromDate").value;
-  const toDate = document.getElementById("searchToDate").value;
+  const fromDate = formatDBDate(document.getElementById("searchFromDate").value);
+  const toDate = formatDBDate(document.getElementById("searchToDate").value);
   
-  if(fromDate) fromDate=formatDBDate(fromDate);
-  if(toDate) toDate=formatDBDate(toDate);
   const filters = {
     customerId: customerId || null,
     subName: subName || null,
@@ -1321,12 +1341,11 @@ async function performChitClosure() {
       finalAmount
     };
   });
-  const selectedDate = document.getElementById('closureDate').value;
+  const selectedDate = formatDBDate(document.getElementById('closureDate').value);
   if (!selectedDate) {
 	  alert("⚠️ Select closure date");
 	  return;
   }
-  selectedDate=formatDBDate(selectedDate);
   const closureSummary={
 	  id: `closure_${selectedDate}`,
       actionDate: getToday(),
