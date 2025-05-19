@@ -1200,7 +1200,7 @@ async function renderTransactionTable(transactions) {
   const table = document.createElement("table");
   table.className = "table table-bordered table-striped table-hover";
 
-  const headers = ["Lend Customer", "Date", "Amount", "Interest", "Total", "Paid", "Due", "Lends"];
+  const headers = ["Lend Customer", "Date", "Type", "Amount", "Interest", "Total", "Paid", "Due", "Lends"];
   const thead = table.createTHead();
   const headerRow = thead.insertRow();
   headers.forEach(h => {
@@ -1217,6 +1217,7 @@ async function renderTransactionTable(transactions) {
     const row = tbody.insertRow();
     row.insertCell().textContent = await getLendCustomerName(tx.customerId, tx.subName);
     row.insertCell().textContent = formatDisplayDate(tx.date);
+    row.insertCell().textContent = tx.state;
     row.insertCell().textContent = tx.amount;
     row.insertCell().textContent = tx.interest;
     row.insertCell().textContent = tx.total;
@@ -1257,7 +1258,7 @@ async function toggleLendDetails(rowId, lendIds, btn) {
     const lendTable = document.createElement("table");
     lendTable.className = "table table-sm table-bordered mt-2";
     
-    const subHeaders = ["Lend Date", "Lend Amount", "Current Due Amount"];
+    const subHeaders = ["Lend Date", "Lend Amount", "Due Amount"];
     const thead = lendTable.createTHead();
     const headerRow = thead.insertRow();
     subHeaders.forEach(text => {
