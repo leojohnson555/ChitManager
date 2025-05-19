@@ -45,6 +45,7 @@ window.onload = function () {
   if (localStorage.getItem(KEY) === "1") {
     document.getElementById("loginBox").classList.add("hidden");
     document.getElementById("appContainer").classList.remove("hidden");
+    document.getElementById("appContainer").classList.remove("hidden");
   }
 };
 	
@@ -121,12 +122,41 @@ function generateId() {
   return '_' + Math.random().toString(36).substr(2, 9);
 }
 
-function formatDate(dateStr) {
-  const date = new Date(dateStr);
-  const dd = String(date.getDate()).padStart(2, '0');
-  const mm = String(date.getMonth() + 1).padStart(2, '0'); // Months are zero-based
-  const yyyy = date.getFullYear();
-  return `${dd}-${mm}-${yyyy}`;
+function formatDisplayDate(dateStr) {
+  const cleaned = dateStr.replace(/\//g, '-');
+  const parts = cleaned.split('-');
+
+  if (parts.length === 3 && parts[0].length === 4) {
+    // Input is yyyy-mm-dd
+    const [yyyy, mm, dd] = parts;
+    return `${dd.padStart(2, '0')}-${mm.padStart(2, '0')}-${yyyy}`;
+  }
+
+  if (parts.length === 3 && parts[2].length === 4) {
+    // Input is already dd-mm-yyyy
+    const [dd, mm, yyyy] = parts;
+    return `${dd.padStart(2, '0')}-${mm.padStart(2, '0')}-${yyyy}`;
+  }
+
+  throw new Error('Invalid date format');
+}
+
+function formatDBDate(dateStr) {
+  // Detect format based on position of the year
+  const parts = dateStr.split('-');
+  
+  // Check for yyyy-mm-dd format (first part has 4 digits)
+  if (parts.length === 3 && parts[0].length === 4) {
+    return dateStr; // Already in correct format
+  }
+
+  // If in dd-mm-yyyy format, convert it
+  if (parts.length === 3 && parts[2].length === 4) {
+    const [dd, mm, yyyy] = parts;
+    return `${yyyy}-${mm.padStart(2, '0')}-${dd.padStart(2, '0')}`;
+  }
+
+  throw new Error('Invalid date format');
 }
 
 
@@ -319,7 +349,7 @@ async function addLent() {
     alert("Please fill all fields correctly.");
     return;
   }
-  
+  date=formatDBDate(date);
   const allLends = await getLendings();
   const existing = allLends.find(
     l => l.date === date && l.customerId === customerId 
@@ -461,7 +491,7 @@ function loadLendings() {
 
         row.innerHTML = `
           <td>${i + 1}</td>
-          <td>${formatDate(l.date)}</td>
+          <td>${formatDisplayDate(l.date)}</td>
           <td>${customer.name}</td>
           <td>${l.subName}</td>
           <td>${l.dueAmount.toFixed(2)}</td>
@@ -477,7 +507,7 @@ function loadLendings() {
       customerRequest.onerror = function () {
         row.innerHTML = `
           <td>${i + 1}</td>
-          <td>${formatDate(l.date)}</td>
+          <td>${formatDisplayDate(l.date)}</td>
           <td>Error</td>
           <td>${l.subName || '-'}</td>
           <td>${l.dueAmount.toFixed(2)}</td>
@@ -630,7 +660,7 @@ async function loadCustomerActiveLends() {
 
   lends.forEach((lend, index) => {
   const weeks = getWeeksBetween(lend.date, getPaymentDate());
-  const labelText = `${formatDate(lend.date)} - ₹${lend.dueAmount} (${weeks} weeks)`;
+  const labelText = `${formatDisplayDate(lend.date)} - ₹${lend.dueAmount} (${weeks} weeks)`;
 
   const checkbox = document.createElement('input');
   const checkboxId = `lendCheckbox_${lend.id}_${index}`; // unique ID for each checkbox
@@ -658,8 +688,9 @@ async function loadCustomerActiveLends() {
 }
 
 function getPaymentDate() {
-  const val = document.getElementById('paymentDate').value;
-  return val ? val : new Date().toISOString().split('T')[0];
+  const payDate = document.getElementById('paymentDate').value;
+  const  val= payDate ? payDate : new Date().toISOString().split('T')[0];
+  return formatDBDate(val);
 }
 
 let currentPaymentCalc = null;
@@ -700,7 +731,7 @@ async function calculatePaymentSummary() {
 	  alert("Select Date");
 	  return;
   }
-	  
+  date=formatDBDate(date);
   const allLends = await getLendings();
   const selectedLends = allLends.filter(l => selectedIds.includes(l.id));
   //const paymentAmount = currentPaymentCalc?.payment || 0;
@@ -826,7 +857,7 @@ async function loadTransactions(screen) {
   const transactions = await getTransactions();
   
   const selectedDate = document.getElementById(screen === "matured-renewal"? 'renewalDate' : 'closureDate').value;
-  
+  selectedDate=formatDBDate(selectedDate);
   let renewTransactions;
   // Filter only "renew" transactions
   if(screen === "Transaction"){
@@ -849,7 +880,7 @@ async function loadTransactions(screen) {
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td>${p.customerName}</td>
-      <td>${formatDate(p.date)}</td>
+      <td>${formatDisplayDate(p.date)}</td>
       <td>${(p.lendIds || []).length} lend(s)</td>
       <td>₹${p.interest}</td>
       <td>₹${p.paidAmount}</td>
@@ -925,7 +956,7 @@ async function loadMaturedRenewals(reset = true, isClosure=false) {
 	  alert("⚠️ Select closure date");
 	  return;
   }
-
+  selectedDate=formatDBDate(selectedDate);
   const [lendings, settings] = await Promise.all([getLendings(), getSettings()]);
   const interestWeeks= isClosure===true? 1: parseInt(settings.interestCycle);
   console.log("interestWeeks: ",interestWeeks);
@@ -940,7 +971,7 @@ async function loadMaturedRenewals(reset = true, isClosure=false) {
       const name = await getLendCustomerName(l.customerId, l.subName);
       const lendweeks = getWeeksBetween(l.date, selectedDate);
       const div = document.createElement('div');
-      div.textContent = `${name} - ₹${l.dueAmount} on ${formatDate(l.date)} (weeks-${lendweeks})`;
+      div.textContent = `${name} - ₹${l.dueAmount} on ${l.date} (weeks-${lendweeks})`;
       container.appendChild(div);
     }
 	
@@ -1071,7 +1102,9 @@ async function searchTransaction() {
   const { customerId, subName } = JSON.parse(selectedOption); // Retrieve customerId and subName from the selected option
   const fromDate = document.getElementById("searchFromDate").value;
   const toDate = document.getElementById("searchToDate").value;
-
+  
+  if(fromDate) fromDate=formatDBDate(fromDate);
+  if(toDate) toDate=formatDBDate(toDate);
   const filters = {
     customerId: customerId || null,
     subName: subName || null,
@@ -1163,7 +1196,7 @@ async function renderTransactionTable(transactions) {
 
     const row = tbody.insertRow();
     row.insertCell().textContent = await getLendCustomerName(tx.customerId, tx.subName);
-    row.insertCell().textContent = formatDate(tx.date);
+    row.insertCell().textContent = formatDisplayDate(tx.date);
     row.insertCell().textContent = tx.amount;
     row.insertCell().textContent = tx.interest;
     row.insertCell().textContent = tx.total;
@@ -1216,7 +1249,7 @@ async function toggleLendDetails(rowId, lendIds, btn) {
     const tbody = lendTable.createTBody();
     lends.forEach(l => {
       const row = tbody.insertRow();
-      row.insertCell().textContent = formatDate(l.date);
+      row.insertCell().textContent = formatDisplayDate(l.date);
       row.insertCell().textContent = l.amount;
       row.insertCell().textContent = l.dueAmount;
     });
@@ -1293,11 +1326,11 @@ async function performChitClosure() {
 	  alert("⚠️ Select closure date");
 	  return;
   }
-  
+  selectedDate=formatDBDate(selectedDate);
   const closureSummary={
-	  id: `closure_${formatDate(selectedDate)}`,
+	  id: `closure_${selectedDate}`,
       actionDate: getToday(),
-	  closureDate: formatDate(selectedDate),
+	  closureDate: selectedDate,
 	  summary: {
       totalChitAmount,
       cashInHand,
@@ -1329,7 +1362,7 @@ async function saveChitClosureDetails() {
 
 function displayClosureSummary(closureSummary) {
   document.getElementById('closureSummaryLabel').innerText =
-    `Closure Date : ${formatDate(closureSummary.closureDate)}
+    `Closure Date : ${formatDisplayDate(closureSummary.closureDate)}
 	 Total InHand Amount : ${closureSummary.summary.cashInHand}
 	 Total Lend Amount : ${closureSummary.summary.totalActiveLendAmount}
 	 Total Chit Amount : ₹${closureSummary.summary.totalChitAmount} = ₹${closureSummary.summary.totalActiveLendAmount} + ₹${closureSummary.summary.cashInHand}
@@ -1432,13 +1465,13 @@ function importCustomer(event) {
         !importedData.every(item =>
           item &&
           typeof item.name === 'string' &&
-          typeof item.contact === 'string' &&
-          typeof item.InstallmentAmount === 'number'
+		  item.name.trim() !== ''
         )
       ) {
+		  console.log("Customer Import File Error.");
         throw new Error('Invalid format');
       }
-	  
+	  //const cleanedData = importedData.map(({ id, ...rest }) => rest);
 	  await clearAndWriteStore('customers', importedData || []);
       alert('Customer data imported successfully!');
       location.reload(); // Optional: refresh to reflect data
@@ -1448,6 +1481,7 @@ function importCustomer(event) {
   };
   reader.readAsText(file);
 }
+
 function clearAllFromDB() {
   if (confirm("Are you sure you want to delete all data?")) {
     resetAppDatabase();
