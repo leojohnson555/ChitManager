@@ -81,7 +81,7 @@
       <h5>Cash Lending</h5>
       <input type="hidden" id="editLendIndex" value="-1"/>
 	  <label>Select Date</label>
-      <input type="date" id="lendDate" class="form-control mb-2 datepicker" onkeydown="return false;" />
+      <input type="text" id="lendDate" class="form-control mb-2 datepicker" onkeydown="return false;" />
       <select id="lendCustomer" class="form-select mb-2" onchange="loadLendings()"></select>
       <input type="text" id="lendSubName" class="form-control mb-2" placeholder="Sub Name (optional)"/>
       <input type="number" id="lendAmount" class="form-control mb-2" placeholder="Amount"/>
@@ -102,7 +102,7 @@
       <label>Select Active Lends</label>
       <div id="activeLendsList" class="mb-2"></div>
       <label>Select Date</label>
-      <input type="date" id="paymentDate" class="form-control mb-2 datepicker" onkeydown="return false;" />
+      <input type="text" id="paymentDate" class="form-control mb-2 datepicker" onkeydown="return false;" />
       <button class="btn btn-primary mb-2 w-100" onclick="calculatePaymentSummary()">Calculate</button>
       <div id="paymentSummary" class="alert alert-secondary p-2 mb-2" style="display:none;"></div>
       <label>Payment Amount</label>
@@ -111,7 +111,7 @@
       <h6>History</h6>
       <table class="table table-sm table-bordered">
         <thead>
-          <tr><th>Customer</th><th>Date</th><th>Lends Covered</th><th>Interest</th><th>Paid</th><th>Due Amount</th><th>Actions</th></tr>
+          <tr><th>Customer</th><th>Date</th><th>Lends Count</th><th>Interest</th><th>Paid</th><th>Due Amount</th><th>Actions</th></tr>
         </thead>
         <tbody id="paymentTableBody"></tbody>
       </table>
@@ -121,13 +121,13 @@
     <div id="maturedRenewalSection" class="section">
       <h5>Matured Renewal</h5>
       <label>Select Renewal Date</label>
-      <input type="date" id="renewalDate" class="form-control mb-3  datepicker" onkeydown="return false;">
+      <input type="text" id="renewalDate" class="form-control mb-3  datepicker" onkeydown="return false;">
       <button class="btn btn-primary w-100 mb-3" onclick="loadMaturedRenewals()">Load Matured Lends</button>
       <div id="maturedRenewalList" class="mb-3"></div>
 	  <h6>Renewed Lends</h6>
       <table class="table table-sm table-bordered">
         <thead>
-          <tr><th>Customer</th><th>Date</th><th>Lends Covered</th><th>Interest</th><th>Paid</th><th>Due Amount</th><th>Actions</th></tr>
+          <tr><th>Customer</th><th>Date</th><th>Lends Count</th><th>Interest</th><th>Paid</th><th>Due Amount</th><th>Actions</th></tr>
         </thead>
         <tbody id="renewedTableBody"></tbody>
       </table>
@@ -140,11 +140,11 @@
       <div class="row mb-3">
 		  <div class="col-6">
 			<label for="fromDate" class="form-label">From Date</label>
-			<input type="date" id="searchFromDate" class="form-control datepicker" onkeydown="return false;">
+			<input type="text" id="searchFromDate" class="form-control datepicker" onkeydown="return false;">
 		  </div>
 		  <div class="col-6">
 			<label for="toDate" class="form-label">To Date</label>
-			<input type="date" id="searchToDate" class="form-control datepicker" onkeydown="return false;">
+			<input type="text" id="searchToDate" class="form-control datepicker" onkeydown="return false;">
 		  </div>
 	  </div>
 	  <button class="btn btn-primary w-100 mb-3" onclick="searchTransaction()">Search</button>
@@ -156,7 +156,7 @@
 
 	  <!-- Closure Date -->
 	  <label>Select Closure Date</label>
-	  <input type="date" id="closureDate" class="form-control mb-3 datepicker" onkeydown="return false;">
+	  <input type="text" id="closureDate" class="form-control mb-3 datepicker" onkeydown="return false;">
 
 	  <!-- Cash in Hand -->
 	  <label>Cash in Hand</label>
@@ -178,7 +178,7 @@
 			  <tr>
 				<th>Customer</th>
 				<th>Date</th>
-				<th>Lends Covered</th>
+				<th>Lends Count</th>
 				<th>Interest</th>
 				<th>Paid</th>
 				<th>Due Amount</th>
@@ -253,8 +253,7 @@
 	<script>
     flatpickr(".datepicker", {
       dateFormat: "d-m-Y",
-      allowInput: true,
-      disableMobile: true
+      allowInput: true
     });
   </script>
 </body>
