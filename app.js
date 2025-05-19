@@ -852,7 +852,7 @@ async function loadTransactions(screen) {
       <td>₹${p.paidAmount}</td>
       <td>₹${p.dueAmount}</td>
       <td>
-        <button class="btn btn-sm btn-danger" onclick="deletePayment('${p.id}')">🗑️</button>
+        <button class="btn btn-sm btn-danger" onclick="deletePayment('${Number(p.id)}')">🗑️</button>
       </td>
     `;
     tbody.appendChild(tr);
@@ -865,10 +865,9 @@ async function deletePayment(id) {
 
   // Step 1: Get the payment record
   const txStore = getTransaction('transactions', 'readonly');
-  const txReq = txStore.get(id);
-
+  const txReq = txStore.get(Number(id));
   txReq.onsuccess = async () => {
-    const payment = txReq.result;
+	const payment = txReq.result;
     if (!payment) {
       alert("transaction not found.");
       return;
@@ -903,7 +902,7 @@ async function deletePayment(id) {
 
     // Step 4: Delete the transaction record
     const delTxStore = getTransaction('transactions', 'readwrite');
-    delTxStore.delete(id).onsuccess = async () => {
+    delTxStore.delete(Number(id)).onsuccess = async () => {
       await loadTransactions("Transaction");
       await loadCustomerActiveLends();
       loadLendings();
@@ -969,9 +968,11 @@ function renewAllMaturedLends(lendings, selectedDate,isClosure) {
     alert("⚠️ Load matured lends again.");
     return;
   }
-  if (confirm("Are you sure want to continue for closure lend calculations?")) {
-  }
-  else{ return;}
+  if(isClosure===true){
+	if (confirm("Are you sure want to continue for closure lend calculations?")) {
+	}
+	else{ return;}
+	}
   
   document.getElementById("loader").style.display = "block"; // Show loader
 
