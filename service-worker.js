@@ -4,6 +4,8 @@ const urlsToCache = [
   "/ChitManager/index.html",
   "/ChitManager/app.js",
   "/ChitManager/style.css",
+  "/ChitManager/flatpickr/flatpickr.min.js",
+  "/ChitManager/flatpickr/flatpickr.min.css",
   "/ChitManager/icons/chitManager512x512.png",
   "/ChitManager/icons/chitManager192x192.png",
 ];
