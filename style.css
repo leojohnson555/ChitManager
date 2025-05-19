@@ -98,3 +98,6 @@ input[type="file"] {
   border-radius: 12px;
   box-shadow: 0 0 15px rgba(0,0,0,0.1);
 }
+.toggle-btn {
+  transition: transform 0.3s ease;
+}
