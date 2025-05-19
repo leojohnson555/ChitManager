@@ -993,7 +993,7 @@ async function loadMaturedRenewals(reset = true, isClosure=false) {
       const name = await getLendCustomerName(l.customerId, l.subName);
       const lendweeks = getWeeksBetween(l.date, selectedDate);
       const div = document.createElement('div');
-      div.textContent = `${name} - ₹${l.dueAmount} on ${l.date} (weeks-${lendweeks})`;
+      div.textContent = `${name} - ₹${l.dueAmount} on ${formatDisplayDate(l.date)} (weeks-${lendweeks})`;
       container.appendChild(div);
     }
 	
@@ -1200,7 +1200,7 @@ async function renderTransactionTable(transactions) {
   const table = document.createElement("table");
   table.className = "table table-bordered table-striped table-hover";
 
-  const headers = ["Lend Customer", "Date", "Type", "Amount", "Interest", "Total", "Paid", "Due", "Lends"];
+  const headers = ["Lent To", "Date", "Status", "Amount", "Interest", "Total", "Paid", "Due", "Lends"];
   const thead = table.createTHead();
   const headerRow = thead.insertRow();
   headers.forEach(h => {
