@@ -1010,7 +1010,7 @@ async function loadMaturedRenewals(reset = true, isClosure=false) {
 	  if(isClosure===true){
 		const actionBtn = document.createElement('button');
 		actionBtn.textContent ='Proceed Closure';
-		actionBtn.classList.add('btn', 'btn-info', 'mt-2');
+		actionBtn.classList.add('btn', 'btn-primary', 'mt-2');
 		actionBtn.onclick = () => performChitClosure();
 		document.getElementById('closureLendList').appendChild(actionBtn);
 		  }
@@ -1064,7 +1064,7 @@ function renewAllMaturedLends(lendings, selectedDate,isClosure) {
         customerId: oldLend.customerId,
         subName: oldLend.subName,
         date: newDateStr,
-        state: 'matured-Renew',
+        state: isClosure? 'Closure': 'matured-Renew',
         weeks: lendWeeks,
         lendIds: [oldLend.id],
         amount: oldLend.dueAmount,
@@ -1093,13 +1093,13 @@ function renewAllMaturedLends(lendings, selectedDate,isClosure) {
 		  if(isClosure===true){
 			  document.getElementById("calculateAllLendsBtn").style.display = 'none';
 			  actionBtn.textContent ='Proceed Closure';
-			  actionBtn.classList.add('btn', 'btn-info', 'mt-2');
+			  actionBtn.classList.add('btn', 'btn-primary', 'mt-2');
 			  actionBtn.onclick = () => performChitClosure();
 			  document.getElementById('closureLendList').appendChild(actionBtn);
 		  }else{
 			  document.getElementById("renewAllBtn").style.display = 'none';
 			  actionBtn.textContent ='Clear';
-			  actionBtn.classList.add('btn', 'btn-secondary', 'mt-2');
+			  actionBtn.classList.add('btn', 'btn-primary', 'mt-2');
 			  actionBtn.onclick = () => loadMaturedRenewals();
 			  document.getElementById('maturedRenewalList').appendChild(actionBtn);
 		  }
