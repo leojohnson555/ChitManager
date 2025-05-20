@@ -19,14 +19,14 @@
   </div>
 
   <!-- Main App -->
-  <div id="appContainer" class="container mt-3 hidden">
-    <h4 class="text-center">💰 Chit Manager</h4>
+  <div id="appContainer" class="container mt-2 hidden">
+    <div class="text-center main-title">💰 Chit Manager</div>
 
     <!-- Sections (Initially Only Customer is visible) -->
     <div id="customerSection" class="section active-section">
-	  <div class="d-flex justify-content-between align-items-center mt-4 mb-1">
+	  <div class="d-flex justify-content-between align-items-center mt-2 mb-1">
 	  <!-- Left aligned title -->
-	  <h5 class="mb-0">Customer Master</h5>
+	  <div class="screen-title">Customer Master</div>
 	  <!-- Right aligned buttons in a row -->
 	  <div class="d-flex gap-2">
 		<button class="btn btn-outline-primary" onclick="exportCustomer()">📤 Exp</button>
@@ -53,13 +53,13 @@
 	</div>
 
     <div id="settingsSection" class="section">
-      <h5>Settings</h5>
+      <div class="screen-title">Settings</div>
       <div class="d-flex align-items-center mb-2">
-	    <label for="ChitYear" class="me-2 mb-0" style="min-width: 130px;">Chit Year</label>
+	    <label for="ChitYear" style="min-width: 130px;">Chit Year</label>
 	    <input type="text" id="chitYear" class="form-control" placeholder="Year" />
 	  </div>
-	  <div class="d-flex align-items-center mb-2">
-	    <label for="weeklyInterest" class="me-2 mb-0" style="min-width: 130px;">Weekly Interest</label>
+	  <div class="d-flex align-items-center mb-1">
+	    <label for="weeklyInterest" style="min-width: 130px;">Weekly Interest</label>
 	    <input type="number" id="weeklyInterest" class="form-control" placeholder="Weekly Interest (%)" />
 	  </div>
 	  <div class="d-flex align-items-center mb-2">
@@ -78,7 +78,7 @@
     </div>
 
     <div id="lendingSection" class="section">
-      <h5>Cash Lending</h5>
+      <div class="screen-title">Cash Lending</div>
       <input type="hidden" id="editLendIndex" value="-1"/>
 	  <label>Select Date</label>
       <input type="text" id="lendDate" class="form-control datepicker" onkeydown="return false;" />
@@ -97,7 +97,7 @@
 	</div>
 
     <div id="transactionSection" class="section">
-      <h5>Requested Renewals/ Payments</h5>
+      <div class="screen-title">Requested Renewals/ Payments</div>
       <label>Select Customer (Name + Subname)</label>
       <select id="paymentCustomerSelect" class="form-control mb-2" onchange="loadCustomerActiveLends()"></select>
       <label>Select Active Lends</label>
@@ -109,7 +109,7 @@
       <label>Payment Amount</label>
       <input type="number" id="paymentAmount" class="form-control mb-2" />
       <button class="btn btn-success w-100 mb-3" onclick="submitTransaction()">Submit</button>
-      <h6>History</h6>
+      <div class="subtitle">History</div>
       <table class="table table-sm table-bordered">
         <thead>
           <tr><th>Customer</th><th>Date</th><th>Lends Count</th><th>Interest</th><th>Paid</th><th>Due Amount</th><th>Actions</th></tr>
@@ -121,12 +121,12 @@
 	
 	<!-- New Matured Renewal Section -->
     <div id="maturedRenewalSection" class="section">
-      <h5>Matured Renewal</h5>
+      <div class="screen-title">Matured Renewal</div>
       <label>Select Renewal Date</label>
       <input type="text" id="renewalDate" class="form-control mb-3  datepicker" onkeydown="return false;">
       <button class="btn btn-primary w-100 mb-3" onclick="loadMaturedRenewals()">Load Matured Lends</button>
       <div id="maturedRenewalList" class="mb-3"></div>
-	  <h6>Renewed Lends</h6>
+	  <div class="subtitle">Renewed Lends</div>
       <table class="table table-sm table-bordered">
         <thead>
           <tr><th>Customer</th><th>Date</th><th>Lends Count</th><th>Interest</th><th>Paid</th><th>Due Amount</th><th>Actions</th></tr>
@@ -137,7 +137,7 @@
 	</div>
 	
     <div id="statusSection" class="section">
-      <h5>Report</h5>
+      <div class="screen-title">Report</div>
 	  <label>Select Customer (Name + Subname)</label>
       <select id="SearchCustomerSelect" class="form-control mb-2" onchange="loadCustomerActiveLends()"></select>
       <div class="row mb-3">
@@ -156,7 +156,7 @@
 	</div>
 	
 	<div id="FundClosure" class="section">
-	  <h5>Fund Closure</h5>
+	  <div class="screen-title">Fund Closure</div>
 	  <!-- Closure Date -->
 	  <label>Select Closure Date</label>
 	  <input type="text" id="closureDate" class="form-control mb-3 datepicker" onkeydown="return false;">
@@ -174,7 +174,7 @@
 
 	  <!-- Closure Lends Table -->
 	  <div id="closureLendTable">
-	    <h6>Active Lends</h6>
+	    <div class="subtitle">Active Lends</div>
 	    <div id="closureLendList" class="mb-3"></div>
 		  <table class="table table-sm table-bordered">
 			<thead>
@@ -192,11 +192,11 @@
 		  </table>
 	  </div>
 	  <!-- Calculated Results Summary -->
-	  <h6 class="mt-4">Summary</h6>
+	  <div class="subtitle">Summary</div>
 	  <div id="closureSummaryLabel" class="mb-2"></div>
 
 	  <!-- Distribution Table -->
-	  <h6>Customer Distribution</h6>
+	  <div class="subtitle">Customer Distribution</div>
 	  <table class="table table-sm table-bordered">
 		<thead>
 		  <tr>
@@ -221,7 +221,7 @@
 
 
     <div id="exportImportSection" class="section">
-      <h5>Export / Import</h5>
+      <div class="screen-title">Export / Import</div>
       <div class="d-flex justify-content-between gap-2 mt-4">
         <button class="btn btn-outline-primary w-50" onclick="exportData()">📤 Export Data</button>
         <label class="btn btn-outline-success w-50">
@@ -230,8 +230,8 @@
         </label>
       </div>
       <small class="text-muted d-block mt-2">Exported files can be saved and imported later to restore all app data.</small>
-      <br>
-	  <h5>Clear Complete Data</h5>
+      <br><br><br>
+	  <div class="subtitle">Clear Complete Data</div>
 		<button id="btnClearAllData" class="btn btn-danger w-100 mt-3" onclick="clearAllFromDB()">Reset App Data</button>
 	</div>
 
