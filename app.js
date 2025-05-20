@@ -502,7 +502,8 @@ function loadLendings() {
 	// Filter by active and selected customer
     const filteredLendings = lendings.filter(l =>
       l.active==true && (!selectedCustomerId || l.customerId == selectedCustomerId)
-    );
+    )
+	.sort((a, b) => new Date(a.date) - new Date(b.date));
 	
     filteredLendings.forEach((l, i) => {
       const row = document.createElement('tr');
