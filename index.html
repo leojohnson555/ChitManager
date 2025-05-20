@@ -109,7 +109,7 @@
       <label>Payment Amount</label>
       <input type="number" id="paymentAmount" class="form-control mb-2" />
       <button class="btn btn-success w-100 mb-3" onclick="submitTransaction()">Submit</button>
-      <div class="subtitle">History</div>
+      <div class="subtitle"><b>History</b></div>
       <table class="table table-sm table-bordered">
         <thead>
           <tr><th>Customer</th><th>Date</th><th>Lends Count</th><th>Interest</th><th>Paid</th><th>Due Amount</th><th>Actions</th></tr>
@@ -126,7 +126,7 @@
       <input type="text" id="renewalDate" class="form-control mb-3  datepicker" onkeydown="return false;">
       <button class="btn btn-primary w-100 mb-3" onclick="loadMaturedRenewals()">Load Matured Lends</button>
       <div id="maturedRenewalList" class="mb-3"></div>
-	  <div class="subtitle">Renewed Lends</div>
+	  <div class="subtitle"><b>Renewed Lends</b></div>
       <table class="table table-sm table-bordered">
         <thead>
           <tr><th>Customer</th><th>Date</th><th>Lends Count</th><th>Interest</th><th>Paid</th><th>Due Amount</th><th>Actions</th></tr>
@@ -174,7 +174,7 @@
 
 	  <!-- Closure Lends Table -->
 	  <div id="closureLendTable">
-	    <div class="subtitle">Active Lends</div>
+	    <div class="subtitle"><b>Active Lends</b></div>
 	    <div id="closureLendList" class="mb-3"></div>
 		  <table class="table table-sm table-bordered">
 			<thead>
@@ -192,11 +192,11 @@
 		  </table>
 	  </div>
 	  <!-- Calculated Results Summary -->
-	  <div class="subtitle">Summary</div>
+	  <div class="subtitle"><b>Summary</b></div>
 	  <div id="closureSummaryLabel" class="mb-2"></div>
 
 	  <!-- Distribution Table -->
-	  <div class="subtitle">Customer Distribution</div>
+	  <div class="subtitle"><b>Customer Distribution</b></div>
 	  <table class="table table-sm table-bordered">
 		<thead>
 		  <tr>
@@ -231,7 +231,7 @@
       </div>
       <small class="text-muted d-block mt-2">Exported files can be saved and imported later to restore all app data.</small>
       <br><br><br>
-	  <div class="subtitle">Clear Complete Data</div>
+	  <div class="subtitle"><b>Clear Complete Data</b></div>
 		<button id="btnClearAllData" class="btn btn-danger w-100 mt-3" onclick="clearAllFromDB()">Reset App Data</button>
 	</div>
 
