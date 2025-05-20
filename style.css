@@ -1,4 +1,19 @@
 
+html, body {
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden; /* prevent wide grids from pushing body width */
+}
+h5 {
+  font-size: 18px;
+  color: #00134d;
+}
+
+h6 {
+  font-size: 15px;
+  color: #26004d;
+}
+
 .section {
   display: none;
 }
