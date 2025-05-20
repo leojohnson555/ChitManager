@@ -276,12 +276,21 @@ function loadCustomerDropdowns() {
   const transaction = db.transaction(['customers'], 'readonly');
   const store = transaction.objectStore('customers');
 
+  const customers = [];
+
   store.openCursor().onsuccess = function (e) {
     const cursor = e.target.result;
     if (cursor) {
-      const { id, name } = cursor.value;
-      lendDropdown.innerHTML += `<option value="${id}">${name}</option>`;
+      customers.push(cursor.value);
       cursor.continue();
+    } else {
+      // Sort customers by name
+      customers.sort((a, b) => a.name.localeCompare(b.name));
+
+      // Populate dropdown
+      customers.forEach(({ id, name }) => {
+        lendDropdown.innerHTML += `<option value="${id}">${name}</option>`;
+      });
     }
   };
 }
