@@ -234,7 +234,7 @@ function loadCustomers() {
         <td>${InstallmentAmount}</td>
         <td>
           <button class="btn btn-sm btn-outline-primary" onclick="editCustomer(${id})">✏️</button>
-          <button class="btn btn-sm btn-danger" onclick="deleteCustomer(${id})">🗑️</button>
+          <button class="btn btn-sm btn-outline-danger" onclick="deleteCustomer(${id})">🗑️</button>
         </td>`;
       tbody.appendChild(tr);
       cursor.continue();
@@ -530,7 +530,7 @@ function loadLendings() {
           <td>${l.dueAmount.toFixed(2)}</td>
           <td>
             ${l.active ? `<button class="btn btn-sm btn-outline-primary" onclick="editLent('${l.id}')">✏️</button>` : ''}
-            <button class="btn btn-sm btn-danger" onclick="deleteLent('${l.id}')">🗑️</button>
+            <button class="btn btn-sm btn-outline-danger" onclick="deleteLent('${l.id}')">🗑️</button>
           </td>
         `;
 
@@ -546,7 +546,7 @@ function loadLendings() {
           <td>${l.dueAmount.toFixed(2)}</td>
           <td>
             ${l.active ? `<button class="btn btn-sm btn-outline-primary" onclick="editLent('${l.id}')">✏️</button>` : ''}
-            <button class="btn btn-sm btn-danger" onclick="deleteLent('${l.id}')">🗑️</button>
+            <button class="btn btn-sm btn-outline-danger" onclick="deleteLent('${l.id}')">🗑️</button>
           </td>
         `;
         tbody.appendChild(row);
@@ -920,7 +920,7 @@ async function loadTransactions(screen) {
       <td>₹${p.paidAmount}</td>
       <td>₹${p.dueAmount}</td>
       <td>
-        <button class="btn btn-sm btn-danger" onclick="deletePayment('${Number(p.id)}')">🗑️</button>
+        <button class="btn btn-sm btn-outline-danger" onclick="deletePayment('${Number(p.id)}')">🗑️</button>
       </td>
     `;
     tbody.appendChild(tr);
