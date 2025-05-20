@@ -225,20 +225,6 @@ thead {
 }
 
 /* Bottom navigation */
-.bottom-nav {
-  position: fixed;
-  bottom: 0.5rem;
-  left: 50%;
-  transform: translateX(-50%);
-  background: white;
-  display: flex;
-  justify-content: space-between;
-  padding: 0.4rem;
-  border-radius: 2rem;
-  box-shadow: 0 0 5px rgba(0,0,0,0.2);
-  width: 90%;
-  max-width: 400px;
-}
 
 .bottom-nav {
   position: fixed;
