@@ -254,38 +254,55 @@ thead {
 /* Bottom navigation */
 .bottom-nav {
   position: fixed;
-  bottom: 0;
-  left: 0;
-  width: 100%;
-  display: flex;
-  flex-wrap: nowrap; /* force single row */
-  justify-content: space-between;
+  bottom: 0.5rem;
+  left: 50%;
+  transform: translateX(-50%);
   background: white;
-  border-top: 1px solid var(--border-color);
-  z-index: 10;
-  overflow-x: auto; /* enable scroll if absolutely needed */
+  display: flex;
+  justify-content: space-between;
+  padding: 0.4rem;
+  border-radius: 2rem;
+  box-shadow: 0 0 5px rgba(0,0,0,0.2);
+  width: 90%;
+  max-width: 400px;
+}
+
+.bottom-nav {
+  position: fixed;
+  bottom: 0.5rem;
+  left: 50%;
+  transform: translateX(-50%);
+  background: white;
+  display: flex;
+  justify-content: space-between;
+  padding: 0.4rem;
+  border-radius: 2rem;
+  box-shadow: 0 0 5px rgba(0,0,0,0.2);
+  width: 95%;
+  max-width: 400px;
+  box-sizing: border-box;
+  z-index: 1000;
 }
 
 .bottom-nav button {
-  flex: 1 1 auto; /* allow equal size, but shrink if needed */
-  min-width: 0; /* allow shrinking */
-  padding: 0.5rem;
+  flex: 1;
   border: none;
-  background: white;
-  cursor: pointer;
-  font-weight: bold;
-  border-right: 1px solid var(--border-color);
-  font-size: 0.85rem;
+  background: none;
   text-align: center;
-  white-space: nowrap;
+  font-size: 0.75rem;
+  color: var(--text);
+  padding: 0.4rem 0.2rem;
+  border-radius: 1rem;
   overflow: hidden;
   text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .bottom-nav button.active {
   background: var(--primary);
   color: white;
 }
+
 
 .bottom-nav button:last-child {
   border-right: none;
