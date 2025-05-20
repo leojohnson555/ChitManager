@@ -4,14 +4,24 @@ html, body {
   padding: 0;
   overflow-x: hidden; /* prevent wide grids from pushing body width */
 }
-h5 {
-  font-size: 18px;
-  color: #00134d;
+.main-title {
+  font-size: 22px;
+  color: #850AC7;
+  font-weight: bold;
+  margin-bottom: 9px;
 }
 
-h6 {
+.screen-title {
+  font-size: 19px;
+  color: #171EF0;
+  font-weight: bold;
+  margin-bottom: 9px;
+}
+
+.subtitle {
   font-size: 15px;
-  color: #26004d;
+  font-weight: bold;
+  margin-bottom: 9px;
 }
 
 .section {
@@ -145,13 +155,13 @@ textarea {
 
 .btn-outline-primary {
   background: none;
-  border: 1px solid var(--primary);
+  border: 2px solid var(--primary);
   color: var(--primary);
 }
 
 .btn-outline-success {
   background: none;
-  border: 1px solid var(--success);
+  border: 2px solid var(--success);
   color: var(--success);
 }
 
@@ -210,15 +220,6 @@ thead {
 /* Utility */
 .hidden {
   display: none;
-}
-
-.center-box {
-  max-width: 400px;
-  margin: 10vh auto;
-  padding: 2rem;
-  border: 1px solid var(--border-color);
-  border-radius: 0.5rem;
-  background: #fff;
 }
 
 /* Alerts */
