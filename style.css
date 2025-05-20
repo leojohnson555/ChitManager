@@ -242,42 +242,34 @@ thead {
 
 .bottom-nav {
   position: fixed;
-  bottom: 0.5rem;
+  bottom: 0;
   left: 50%;
-  transform: translateX(-50%);
-  background: white;
-  display: flex;
-  justify-content: space-between;
-  padding: 0.4rem;
-  border-radius: 2rem;
-  box-shadow: 0 0 5px rgba(0,0,0,0.2);
   width: 95%;
-  max-width: 400px;
-  box-sizing: border-box;
+  display: flex;
+  justify-content: space-around;
+  background: white;
+  padding: 0.6rem 0;
+  box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.1);
   z-index: 1000;
+  padding-bottom: calc(0.6rem + env(safe-area-inset-bottom)); /* support for iPhone notches */
 }
 
 .bottom-nav button {
   flex: 1;
-  border: none;
   background: none;
+  border: none;
+  font-size: 0.8rem;
+  color: #444;
+  padding: 0.4rem 0;
   text-align: center;
-  font-size: 0.75rem;
-  color: var(--text);
-  padding: 0.4rem 0.2rem;
   border-radius: 1rem;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .bottom-nav button.active {
-  background: var(--primary);
+  background: #007bff;
   color: white;
 }
-
 
 .bottom-nav button:last-child {
   border-right: none;
 }
-
