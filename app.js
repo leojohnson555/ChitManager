@@ -677,7 +677,8 @@ async function loadCustomerActiveLends() {
   const { customerId, subName } = JSON.parse(selectedOption); // Retrieve customerId and subName from the selected option
 
   const lends = (await getLendings()).filter(l => l.customerId === customerId 
-				&& l.subName === subName && l.active);
+				&& l.subName === subName && l.active)
+				.sort((a, b) => new Date(a.date) - new Date(b.date));
 
   const container = document.getElementById('activeLendsList');
   container.innerHTML = '';  
@@ -987,7 +988,8 @@ async function loadMaturedRenewals(reset = true, isClosure=false) {
 			if (!l.active) return false;
 			const weeks = getWeeksBetween(l.date, selectedDate);
 			return weeks >= interestWeeks;
-		});
+		})
+		.sort((a, b) => new Date(a.date) - new Date(b.date));
   
   if (reset) {
     for (const l of matured) {
