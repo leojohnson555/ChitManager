@@ -80,11 +80,11 @@
       <h5>Cash Lending</h5>
       <input type="hidden" id="editLendIndex" value="-1"/>
 	  <label>Select Date</label>
-      <input type="text" id="lendDate" class="form-control mb-2 datepicker" onkeydown="return false;" />
+      <input type="text" id="lendDate" class="form-control datepicker" onkeydown="return false;" />
       <select id="lendCustomer" class="form-select mb-2" onchange="loadLendings()"></select>
-      <input type="text" id="lendSubName" class="form-control mb-2" placeholder="Sub Name (optional)"/>
-      <input type="number" id="lendAmount" class="form-control mb-2" placeholder="Amount"/>
-      <input type="number" id="weeklyDueAmount" class="form-control mb-2" placeholder="Weekly Due Amount" disabled />
+      <input type="text" id="lendSubName" class="form-control" placeholder="Sub Name (optional)"/>
+      <input type="number" id="lendAmount" class="form-control" placeholder="Amount"/>
+      <input type="number" id="weeklyDueAmount" class="form-control" placeholder="Weekly Due Amount" disabled />
       <button class="btn btn-primary w-100 mb-3" onclick="addLent()">Save Lending</button>
       <table class="table table-sm table-bordered">
         <thead>
