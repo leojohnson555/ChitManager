@@ -916,7 +916,8 @@ async function loadTransactions(screen) {
       <td>${p.customerName}</td>
       <td>${formatDisplayDate(p.date)}</td>
       <td>${(p.lendIds || []).length} lend(s)</td>
-      <td>₹${p.interest}</td>
+      <td>₹${p.amount}</td>
+	  <td>₹${p.interest}</td>
       <td>₹${p.paidAmount}</td>
       <td>₹${p.dueAmount}</td>
       <td>
@@ -1132,23 +1133,29 @@ async function loadSearchCustomer(){
 }
 async function searchTransaction() {
   const selectedOption = document.getElementById('SearchCustomerSelect').value;
-
-  const { customerId, subName } = JSON.parse(selectedOption); // Retrieve customerId and subName from the selected option
+  
+  let customerId = null;
+  let subName = null;
+  if (selectedOption) {
+  ({ customerId, subName } = JSON.parse(selectedOption)); // Destructure safely into outer variables
+  }
   const fromDate = formatDBDate(document.getElementById("searchFromDate").value);
   const toDate = formatDBDate(document.getElementById("searchToDate").value);
+  const excludeRenewals = document.getElementById("excludeRenewals").checked;
   
   const filters = {
     customerId: customerId || null,
     subName: subName || null,
     fromDate: fromDate || null,
-    toDate: toDate || null
+    excludeRenewals: excludeRenewals,
+	
   };
 
   const filteredTransactions = await searchTransactions(filters);
   renderTransactionTable(filteredTransactions);
 }
 
-async function searchTransactions({ customerId = null, subName = null, fromDate = null, toDate = null }) {
+async function searchTransactions({ customerId = null, subName = null, fromDate = null, toDate = null, excludeRenewals=false }) {
   const results = [];
 
   return new Promise((resolve, reject) => {
@@ -1176,25 +1183,56 @@ async function searchTransactions({ customerId = null, subName = null, fromDate 
 		}
 
         if (fromDate) {
-          const txDate = new Date(tx.date);
+		  const txDate = new Date(tx.date);
           const from = new Date(fromDate);
           matches = matches && txDate >= from;
         }
 
         if (toDate) {
-          const txDate = new Date(tx.date);
+		  const txDate = new Date(tx.date);
           const to = new Date(toDate);
           matches = matches && txDate <= to;
         }
+		if (excludeRenewals) {
+		  matches = matches && !(tx.state.toLowerCase().includes("renew") && (!tx.paidAmount || tx.paidAmount <= 0));
+		  
+		}
 
         if (matches) results.push(tx);
-
         cursor.continue();
       } else {
+		  if (excludeRenewals) {
+			updateNewSessionSummary(results); // ✅ Call once with the full array
+		  }
+		  else document.getElementById('daytodaySummary').innerText="";
         resolve(results);
       }
     };
   });
+}
+function updateNewSessionSummary(transactions) {
+  const cashCollection = parseFloat(document.getElementById('cashCollection').value) || 0;
+  const gpayCollection = parseFloat(document.getElementById('gpayCollection').value) || 0;
+
+  const paidAmountSum = transactions.reduce((sum, tx) => sum + (tx.paidAmount || 0), 0);
+  const totalExpense = transactions.filter(tx => tx.state === "new").reduce((sum, tx) => sum + (tx.amount || 0), 0);
+  
+  const totalCashCollection = paidAmountSum + cashCollection;
+  const totalCollection = paidAmountSum + cashCollection + gpayCollection;
+  const balanceAmount = totalCollection - totalExpense;
+  const balanceCashCollection = totalCollection - gpayCollection - totalExpense;
+
+  const summaryText = 
+		`No. of Transactions : ${transactions.length}
+		Cash Collection (Manual) : ₹${cashCollection}
+		GPay Collection (Manual) : ₹${gpayCollection}
+		Total Collection : ₹${totalCollection}
+		Total Cash Collection : ₹${totalCashCollection}
+		Total Expense : ₹${totalExpense}
+		Balance Amount : ₹${balanceAmount}
+		Balance Cash Collection : ₹${balanceCashCollection}`;
+
+  document.getElementById('daytodaySummary').innerText = summaryText;
 }
 
 async function renderTransactionTable(transactions) {
