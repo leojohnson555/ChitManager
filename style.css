@@ -256,6 +256,7 @@ thead {
   padding: 0.4rem 0;
   text-align: center;
   border-radius: 1rem;
+  cursor: pointer;
 }
 
 .bottom-nav button.active {
@@ -265,4 +266,25 @@ thead {
 
 .bottom-nav button:last-child {
   border-right: none;
+}
+.date-range-row {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.date-field {
+  flex: 1 1 0;
+  min-width: 140px;
+}
+.checkbox-container {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.9rem;
+  margin-top: 0.1rem;
+}
+.checkbox-container input[type="checkbox"],
+.checkbox-container label {
+  cursor: pointer;
 }
