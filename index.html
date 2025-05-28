@@ -112,7 +112,7 @@
       <div class="subtitle"><b>History</b></div>
       <table class="table table-sm table-bordered">
         <thead>
-          <tr><th>Customer</th><th>Date</th><th>Lends Count</th><th>Interest</th><th>Paid</th><th>Due Amount</th><th>Actions</th></tr>
+          <tr><th>Customer</th><th>Date</th><th>Lends Count</th><th>Amount</th><th>Interest</th><th>Paid</th><th>Due Amount</th><th>Actions</th></tr>
         </thead>
         <tbody id="paymentTableBody"></tbody>
       </table>
@@ -129,7 +129,7 @@
 	  <div class="subtitle"><b>Renewed Lends</b></div>
       <table class="table table-sm table-bordered">
         <thead>
-          <tr><th>Customer</th><th>Date</th><th>Lends Count</th><th>Interest</th><th>Paid</th><th>Due Amount</th><th>Actions</th></tr>
+          <tr><th>Customer</th><th>Date</th><th>Lends Count</th><th>Amount</th><th>Interest</th><th>Paid</th><th>Due Amount</th><th>Actions</th></tr>
         </thead>
         <tbody id="renewedTableBody"></tbody>
       </table>
@@ -138,20 +138,40 @@
 	
     <div id="statusSection" class="section">
       <div class="screen-title">Report</div>
-	  <label>Select Customer (Name + Subname)</label>
-      <select id="SearchCustomerSelect" class="form-control mb-2" onchange="loadCustomerActiveLends()"></select>
-      <div class="row mb-3">
-		  <div class="col-6">
-			<label for="fromDate" class="form-label">From Date</label>
+
+		<label>Select Customer (Name + Subname)</label>
+		<select id="SearchCustomerSelect" class="form-control mb-2" onchange="loadCustomerActiveLends()"></select>
+
+		<div class="date-range-row mb-3">
+		  <div class="date-field">
+			<label for="searchFromDate" class="form-label">From Date</label>
 			<input type="text" id="searchFromDate" class="form-control datepicker" onkeydown="return false;">
+		    <div class="checkbox-container">
+			  <input type="checkbox" id="excludeRenewals" />
+			  <label for="excludeRenewals">Exclude Renewals</label>
+			</div>
 		  </div>
-		  <div class="col-6">
-			<label for="toDate" class="form-label">To Date</label>
-			<input type="text" id="searchToDate" class="form-control datepicker" onkeydown="return false;">
+		  
+		  <div class="date-field">
+			<label for="searchToDate" class="form-label">To Date</label>
+			<input type="text" id="searchToDate" class="form-control datepicker" onkeydown="return false;">			
 		  </div>
-	  </div>
-	  <button class="btn btn-primary w-100 mb-3" onclick="searchTransaction()">Search</button>
-	  <div id="transactionSearchTable"></div>
+		</div>
+		<div class="date-range-row mb-3">
+		<div class="date-field">
+			<label for="cashCollection">Cash Collection</label>
+			<input id="cashCollection" type="number" class="form-control" />
+		  </div>
+
+		  <div class="date-field">
+			<label for="gpayCollection">GPay Collection</label>
+			<input id="gpayCollection" type="number" class="form-control" />
+		  </div>
+		</div>  
+		<button class="btn btn-primary w-100 mb-3" onclick="searchTransaction()">Search</button>
+		<div class="subtitle"><b>Summary</b></div>
+	    <div id="daytodaySummary" class="mb-2"></div>
+		<div id="transactionSearchTable"></div>
 		<br><br>
 	</div>
 	
@@ -182,6 +202,7 @@
 				<th>Customer</th>
 				<th>Date</th>
 				<th>Lends Count</th>
+				<th>Amount</th>
 				<th>Interest</th>
 				<th>Paid</th>
 				<th>Due Amount</th>
