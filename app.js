@@ -1226,6 +1226,7 @@ function updateNewSessionSummary(transactions) {
 		`No. of Transactions : ${transactions.length}
 		Cash Collection (Manual) : ₹${cashCollection}
 		GPay Collection (Manual) : ₹${gpayCollection}
+		Lend Payment (Calculated): ₹${paidAmountSum}
 		Total Collection : ₹${totalCollection}
 		Total Cash Collection : ₹${totalCashCollection}
 		Total Expense : ₹${totalExpense}
@@ -1433,11 +1434,11 @@ async function saveChitClosureDetails() {
 function displayClosureSummary(closureSummary) {
   document.getElementById('closureSummaryLabel').innerText =
     `Closure Date : ${formatDisplayDate(closureSummary.closureDate)}
-	 Total InHand Amount : ${closureSummary.summary.cashInHand}
-	 Total Lend Amount : ${closureSummary.summary.totalActiveLendAmount}
+	 Total InHand Amount : ₹${closureSummary.summary.cashInHand}
+	 Total Lend Amount : ₹${closureSummary.summary.totalActiveLendAmount}
 	 Total Chit Amount : ₹${closureSummary.summary.totalChitAmount} = ₹${closureSummary.summary.totalActiveLendAmount} + ₹${closureSummary.summary.cashInHand}
      Total Chit Units : ${closureSummary.summary.totalChitUnits}
-	 Total closure Expense : ${closureSummary.summary.closureExpense}
+	 Total closure Expense : ₹${closureSummary.summary.closureExpense}
      Matured Amount per Unit : ₹${Number(closureSummary.summary.maturedPerUnit).toFixed(2)}
 	 Chit Duration : ${closureSummary.summary.chitDuration}`;
 
